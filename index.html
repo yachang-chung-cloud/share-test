@@ -2,9 +2,8 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>圖片分享頁面 (測試版)</title>
+    <title>圖片分享頁面 (最終測試版)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 引入 qrcode.js 函式庫 -->
     <script src="https://cdn.jsdelivr.net/npm/davidshimjs-qrcodejs@0.0.2/qrcode.min.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; text-align: center; padding: 20px; background-color: #f8f9fa; color: #333; }
@@ -40,16 +39,13 @@
 
     <div class="container">
         <h1>圖片分享</h1>
-        <!-- 這裡也使用測試圖片 -->
         <img id="shareImage" src="https://picsum.photos/800/600" alt="分享圖片">
 
-        <!-- 手機版視圖 (預設隱藏) -->
         <div id="mobile-view" style="display: none;" class="button-group">
             <button id="mobileShareBtn">分享圖片</button>
             <button id="mobileDownloadBtn">下載圖片</button>
         </div>
 
-        <!-- 電腦版視圖 (預設顯示) -->
         <div id="desktop-view" class="button-group">
             <p><strong>在電腦上，您可以直接下載圖片</strong></p>
             <button id="desktopDownloadBtn">下載圖片</button>
@@ -60,18 +56,20 @@
     </div>
 
     <script>
-        // ✨ 全局使用 picsum.photos 的測試圖片連結
         const imageUrl = 'https://picsum.photos/800/600';
 
-        // --- 通用功能：下載圖片 ---
-        const downloadImage = async () => {
+        const downloadImage = async () => { /* ... 下載功能不變 ... */ };
+        const mobileShare = async () => { /* ... 分享功能不變 ... */ };
+
+        // --- (此處為下載與分享功能的完整程式碼，為求簡潔省略，請保留您原本的) ---
+        const downloadImageFull = async () => {
             try {
                 const response = await fetch(imageUrl);
                 const blob = await response.blob();
                 const blobUrl = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = blobUrl;
-                link.download = 'test-image.jpg'; // 下載檔名也改為測試用
+                link.download = 'test-image.jpg';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -82,8 +80,7 @@
             }
         };
 
-        // --- 手機專用功能：Web Share API ---
-        const mobileShare = async () => {
+        const mobileShareFull = async () => {
             try {
                 const response = await fetch(imageUrl); 
                 const blob = await response.blob();
@@ -106,26 +103,33 @@
             }
         };
 
-        // --- 主邏輯：偵測環境並顯示對應的 UI ---
+
+        // ✨ --- 主邏輯更新：更精準的裝置偵測 --- ✨
         document.addEventListener('DOMContentLoaded', () => {
             const mobileView = document.getElementById('mobile-view');
             const desktopView = document.getElementById('desktop-view');
 
-            if (navigator.share) {
-                // 這是手機環境
+            // 新增一個函式來判斷是否為行動裝置
+            const isMobile = () => {
+                const regex = /Mobi|Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+                return regex.test(navigator.userAgent);
+            };
+
+            // 新的判斷條件：必須是行動裝置 *且* 支援 navigator.share
+            if (isMobile() && navigator.share) {
+                // 這是真正的行動裝置環境
                 mobileView.style.display = 'block';
                 desktopView.style.display = 'none';
 
-                document.getElementById('mobileShareBtn').addEventListener('click', mobileShare);
-                document.getElementById('mobileDownloadBtn').addEventListener('click', downloadImage);
+                document.getElementById('mobileShareBtn').addEventListener('click', mobileShareFull);
+                document.getElementById('mobileDownloadBtn').addEventListener('click', downloadImageFull);
             } else {
-                // 這是電腦環境
+                // 這是電腦環境 (包含 Mac Safari)
                 mobileView.style.display = 'none';
                 desktopView.style.display = 'block';
                 
-                document.getElementById('desktopDownloadBtn').addEventListener('click', downloadImage);
+                document.getElementById('desktopDownloadBtn').addEventListener('click', downloadImageFull);
 
-                // 生成 QR Code，內容為當前頁面的網址
                 new QRCode(document.getElementById("qrcode"), {
                     text: window.location.href,
                     width: 180,
