@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Instagram Share Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <h1>Instagram 分享測試</h1>
+    <p>點擊下方按鈕，使用手機測試分享功能。</p>
+    <img src="https://storage.googleapis.com/nn-hcp-public/2025041213Banner.jpg" width="300" alt="Test Image">
+    <br><br>
+    <button id="instaShareBtn">分享至 Instagram</button>
+
+    <script>
+        const shareButton = document.getElementById('instaShareBtn');
+
+        // 先檢查 navigator.share 是否存在，不存在就隱藏按鈕
+        if (!navigator.share) {
+            shareButton.style.display = 'none';
+            document.body.innerHTML += '<p>此裝置或瀏覽器不支援 Web Share API。</p>';
+        }
+
+        shareButton.addEventListener('click', async () => {
+            const imageUrl = 'https://storage.googleapis.com/nn-hcp-public/2025041213Banner.jpg';
+            const fileName = 'share-image.jpg';
+
+            try {
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                const file = new File([blob], fileName, { type: blob.type });
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: '分享圖片',
+                        text: '看看這張超棒的圖片！',
+                    });
+                    console.log('圖片分享成功！');
+                } else {
+                    alert('您的裝置不支援圖片分享功能。');
+                }
+            } catch (error) {
+                console.error('分享失敗:', error);
+                // 使用者主動取消分享也會觸發 error，可以不用 alert
+            }
+        });
+    </script>
+</body>
+</html>
