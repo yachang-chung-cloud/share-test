@@ -1,47 +1,139 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
-    <title>Instagram Share Test</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <title>圖片分享頁面 (測試版)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 引入 qrcode.js 函式庫 -->
+    <script src="https://cdn.jsdelivr.net/npm/davidshimjs-qrcodejs@0.0.2/qrcode.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; text-align: center; padding: 20px; background-color: #f8f9fa; color: #333; }
+        .container { max-width: 500px; margin: 0 auto; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 20px; }
+        h1 { color: #007bff; }
+        img { max-width: 100%; height: auto; border-radius: 5px; margin-bottom: 20px; }
+        .button-group button { 
+            display: block;
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+        .button-group button:hover { background-color: #0056b3; }
+        #qrcode {
+            margin: 20px auto;
+            padding: 10px;
+            border: 1px solid #eee;
+            display: inline-block;
+            background-color: white;
+        }
+        #desktop-view p { font-size: 16px; color: #555; line-height: 1.5; }
+        hr { border: 0; height: 1px; background-color: #eee; margin: 20px 0; }
+    </style>
 </head>
 <body>
-    <h1>Instagram 分享測試</h1>
-    <p>點擊下方按鈕，使用手機測試分享功能。</p>
-    <img src="https://picsum.photos/800/600" width="300" alt="Test Image">
-    <br><br>
-    <button id="instaShareBtn">分享至 Instagram</button>
+
+    <div class="container">
+        <h1>圖片分享</h1>
+        <!-- 這裡也使用測試圖片 -->
+        <img id="shareImage" src="https://picsum.photos/800/600" alt="分享圖片">
+
+        <!-- 手機版視圖 (預設隱藏) -->
+        <div id="mobile-view" style="display: none;" class="button-group">
+            <button id="mobileShareBtn">分享圖片</button>
+            <button id="mobileDownloadBtn">下載圖片</button>
+        </div>
+
+        <!-- 電腦版視圖 (預設顯示) -->
+        <div id="desktop-view" class="button-group">
+            <p><strong>在電腦上，您可以直接下載圖片</strong></p>
+            <button id="desktopDownloadBtn">下載圖片</button>
+            <hr>
+            <p><strong>或使用手機掃描 QR Code<br>開啟分享功能</strong></p>
+            <div id="qrcode"></div>
+        </div>
+    </div>
 
     <script>
-        const shareButton = document.getElementById('instaShareBtn');
+        // ✨ 全局使用 picsum.photos 的測試圖片連結
+        const imageUrl = 'https://picsum.photos/800/600';
 
-        // 先檢查 navigator.share 是否存在，不存在就隱藏按鈕
-        if (!navigator.share) {
-            shareButton.style.display = 'none';
-            document.body.innerHTML += '<p>此裝置或瀏覽器不支援 Web Share API。</p>';
-        }
-
-        shareButton.addEventListener('click', async () => {
-            const imageUrl = 'https://picsum.photos/800/600';
-            const fileName = 'share-image.jpg';
-
+        // --- 通用功能：下載圖片 ---
+        const downloadImage = async () => {
             try {
                 const response = await fetch(imageUrl);
                 const blob = await response.blob();
-                const file = new File([blob], fileName, { type: blob.type });
+                const blobUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = 'test-image.jpg'; // 下載檔名也改為測試用
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(blobUrl);
+            } catch (error) {
+                console.error('下載失敗:', error);
+                alert('圖片下載失敗。');
+            }
+        };
+
+        // --- 手機專用功能：Web Share API ---
+        const mobileShare = async () => {
+            try {
+                const response = await fetch(imageUrl); 
+                const blob = await response.blob();
+                const file = new File([blob], "test-image.jpg", { type: blob.type });
 
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         files: [file],
-                        title: '分享圖片',
-                        text: '看看這張超棒的圖片！',
+                        title: '精彩圖片分享',
+                        text: '這是一張很棒的圖片，與您分享！',
                     });
-                    console.log('圖片分享成功！');
                 } else {
-                    alert('您的裝置不支援圖片分享功能。');
+                    alert('此裝置不支援檔案分享。');
                 }
             } catch (error) {
-                console.error('分享失敗:', error);
-                // 使用者主動取消分享也會觸發 error，可以不用 alert
+                if (error.name !== 'AbortError') {
+                    console.error('分享失敗:', error);
+                    alert(`分享過程中發生錯誤: ${error.message}`);
+                }
+            }
+        };
+
+        // --- 主邏輯：偵測環境並顯示對應的 UI ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileView = document.getElementById('mobile-view');
+            const desktopView = document.getElementById('desktop-view');
+
+            if (navigator.share) {
+                // 這是手機環境
+                mobileView.style.display = 'block';
+                desktopView.style.display = 'none';
+
+                document.getElementById('mobileShareBtn').addEventListener('click', mobileShare);
+                document.getElementById('mobileDownloadBtn').addEventListener('click', downloadImage);
+            } else {
+                // 這是電腦環境
+                mobileView.style.display = 'none';
+                desktopView.style.display = 'block';
+                
+                document.getElementById('desktopDownloadBtn').addEventListener('click', downloadImage);
+
+                // 生成 QR Code，內容為當前頁面的網址
+                new QRCode(document.getElementById("qrcode"), {
+                    text: window.location.href,
+                    width: 180,
+                    height: 180,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
             }
         });
     </script>
