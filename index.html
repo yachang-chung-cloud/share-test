@@ -2,10 +2,11 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>圖片分享頁面 (最終測試版)</title>
+    <title>圖片分享</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/davidshimjs-qrcodejs@0.0.2/qrcode.min.js"></script>
     <style>
+        /* CSS 樣式保持不變 */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; text-align: center; padding: 20px; background-color: #f8f9fa; color: #333; }
         .container { max-width: 500px; margin: 0 auto; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 20px; }
         h1 { color: #007bff; }
@@ -24,13 +25,7 @@
             transition: background-color 0.2s;
         }
         .button-group button:hover { background-color: #0056b3; }
-        #qrcode {
-            margin: 20px auto;
-            padding: 10px;
-            border: 1px solid #eee;
-            display: inline-block;
-            background-color: white;
-        }
+        #qrcode { margin: 20px auto; padding: 10px; border: 1px solid #eee; display: inline-block; background-color: white; }
         #desktop-view p { font-size: 16px; color: #555; line-height: 1.5; }
         hr { border: 0; height: 1px; background-color: #eee; margin: 20px 0; }
     </style>
@@ -39,7 +34,7 @@
 
     <div class="container">
         <h1>圖片分享</h1>
-        <img id="shareImage" src="https://storage.googleapis.com/nn-hcp-public/03screen.png" alt="分享圖片">
+        <img id="shareImage" src="" alt="分享圖片">
 
         <div id="mobile-view" style="display: none;" class="button-group">
             <button id="mobileShareBtn">分享圖片</button>
@@ -56,20 +51,19 @@
     </div>
 
     <script>
-        const imageUrl = 'https://storage.googleapis.com/nn-hcp-public/03screen.png';
+        // --- 1. 定義基本設定 ---
+        const gcpBaseUrl = 'https://storage.googleapis.com/nn-hcp-public/';
+        const defaultImageId = '2025041213Banner.jpg'; // ✨ 注意：預設圖片需要包含副檔名，因為它是個完整的檔名
 
-        const downloadImage = async () => { /* ... 下載功能不變 ... */ };
-        const mobileShare = async () => { /* ... 分享功能不變 ... */ };
-
-        // --- (此處為下載與分享功能的完整程式碼，為求簡潔省略，請保留您原本的) ---
-        const downloadImageFull = async () => {
+        // --- 2. 修改功能函式，讓它們可以接收動態參數 ---
+        const downloadImage = async (url, filename) => {
             try {
-                const response = await fetch(imageUrl);
+                const response = await fetch(url);
                 const blob = await response.blob();
                 const blobUrl = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = blobUrl;
-                link.download = 'test-image.jpg';
+                link.download = filename;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -80,11 +74,11 @@
             }
         };
 
-        const mobileShareFull = async () => {
+        const mobileShare = async (url, filename) => {
             try {
-                const response = await fetch(imageUrl); 
+                const response = await fetch(url); 
                 const blob = await response.blob();
-                const file = new File([blob], "test-image.jpg", { type: blob.type });
+                const file = new File([blob], filename, { type: blob.type });
 
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({
@@ -103,40 +97,57 @@
             }
         };
 
-
-        // ✨ --- 主邏輯更新：更精準的裝置偵測 --- ✨
+        // --- 3. 主邏輯：頁面載入時執行 ---
         document.addEventListener('DOMContentLoaded', () => {
-            const mobileView = document.getElementById('mobile-view');
-            const desktopView = document.getElementById('desktop-view');
+            // ✨ --- 3a. 從 URL 擷取圖片 ID ---
+            const pathSegments = window.location.pathname.split('/').filter(segment => segment && segment !== 'share-test');
+            const imageId = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : null;
 
-            // 新增一個函式來判斷是否為行動裝置
-            const isMobile = () => {
-                const regex = /Mobi|Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
-                return regex.test(navigator.userAgent);
+            let imageUrl;
+            let downloadFilename;
+
+            // ✨ --- 3b. 根據是否有 imageId 來組合 URL 和檔名 ---
+            if (imageId) {
+                // 如果 URL 有指定 ID
+                imageUrl = `${gcpBaseUrl}${imageId}`;
+                downloadFilename = `${imageId}.jpg`; // 為下載檔名添加 .jpg 副檔名
+            } else {
+                // 如果 URL 沒有指定 ID，使用預設值
+                imageUrl = `${gcpBaseUrl}${defaultImageId}`;
+                downloadFilename = defaultImageId; // 預設檔名本身已包含副檔名
+            }
+
+            // ✨ --- 3c. 動態更新頁面上的圖片 ---
+            const imageElement = document.getElementById('shareImage');
+            imageElement.src = imageUrl;
+            imageElement.onerror = () => {
+                alert('找不到指定的圖片，將顯示預設圖片。');
+                imageElement.src = `${gcpBaseUrl}${defaultImageId}`;
+                // 更新檔名為預設檔名，以防下載錯誤
+                downloadFilename = defaultImageId;
             };
 
-            // 新的判斷條件：必須是行動裝置 *且* 支援 navigator.share
+            // --- 3d. 裝置偵測與綁定事件 ---
+            const mobileView = document.getElementById('mobile-view');
+            const desktopView = document.getElementById('desktop-view');
+            const isMobile = () => /Mobi|Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
             if (isMobile() && navigator.share) {
-                // 這是真正的行動裝置環境
                 mobileView.style.display = 'block';
                 desktopView.style.display = 'none';
-
-                document.getElementById('mobileShareBtn').addEventListener('click', mobileShareFull);
-                document.getElementById('mobileDownloadBtn').addEventListener('click', downloadImageFull);
+                
+                document.getElementById('mobileShareBtn').addEventListener('click', () => mobileShare(imageUrl, downloadFilename));
+                document.getElementById('mobileDownloadBtn').addEventListener('click', () => downloadImage(imageUrl, downloadFilename));
             } else {
-                // 這是電腦環境 (包含 Mac Safari)
                 mobileView.style.display = 'none';
                 desktopView.style.display = 'block';
                 
-                document.getElementById('desktopDownloadBtn').addEventListener('click', downloadImageFull);
+                document.getElementById('desktopDownloadBtn').addEventListener('click', () => downloadImage(imageUrl, downloadFilename));
 
                 new QRCode(document.getElementById("qrcode"), {
                     text: window.location.href,
                     width: 180,
                     height: 180,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.H
                 });
             }
         });
