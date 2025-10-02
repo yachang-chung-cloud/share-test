@@ -38,7 +38,6 @@
 
         <div id="mobile-view" style="display: none;" class="button-group">
             <button id="mobileActionBtn">分享／下載圖片</button>
-            <button id="mobileLegacyDownloadBtn" style="display:none;">下載圖片</button> <!-- ✨ 為了簡化邏輯，我們只用一個主按鈕 -->
         </div>
 
         <div id="desktop-view" class="button-group">
@@ -53,11 +52,38 @@
         const gcpBaseUrl = 'https://storage.googleapis.com/nn-hcp-public/';
         const defaultImageId = 'NNBanner.jpg';
 
-        // 功能函式保持不變
-        const downloadImage = async (url, filename) => { /* ... */ };
-        const mobileShare = async (url, filename) => { /* ... */ };
+        const downloadImage = async (url, filename) => { /* ... 內容不變 ... */ };
         
-        // (此處為下載與分享功能的完整程式碼，為求簡潔省略，請保留您原本的)
+        // ✨ 核心修改：mobileShare 函式現在接收第三個參數 message
+        const mobileShare = async (url, filename, message) => {
+            try {
+                const response = await fetch(url); 
+                const blob = await response.blob();
+                const file = new File([blob], filename, { type: blob.type });
+
+                // 準備要分享的資料
+                const shareData = {
+                    files: [file]
+                };
+
+                // 如果 message 存在且不為空，就將它加入到分享資料中
+                if (message) {
+                    shareData.text = message;
+                }
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share(shareData); // 分享包含訊息的資料
+                } else {
+                    alert('此裝置不支援檔案分享。');
+                }
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('分享失敗:', error);
+                    alert(`分享過程中發生錯誤: ${error.message}`);
+                }
+            }
+        };
+        
         const downloadImageFull = async (url, filename) => {
             try {
                 const response = await fetch(url);
@@ -72,22 +98,14 @@
                 window.URL.revokeObjectURL(blobUrl);
             } catch (error) { console.error('下載失敗:', error); alert('圖片下載失敗。'); }
         };
-        const mobileShareFull = async (url, filename) => {
-            try {
-                const response = await fetch(url); 
-                const blob = await response.blob();
-                const file = new File([blob], filename, { type: blob.type });
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({ files: [file] });
-                } else { alert('此裝置不支援檔案分享。'); }
-            } catch (error) { if (error.name !== 'AbortError') { console.error('分享失敗:', error); alert(`分享過程中發生錯誤: ${error.message}`); } }
-        };
 
         document.addEventListener('DOMContentLoaded', () => {
-            // ID和參數讀取邏輯保持不變
             const params = new URLSearchParams(window.location.search);
             const imageId = params.get('id');
             const pageMode = params.get('mode') || 'share'; 
+            // ✨ 讀取 msg 參數，若不存在則為 null
+            const shareMessage = params.get('msg'); 
+
             let imageUrl, downloadFilename;
             if (imageId) {
                 imageUrl = `${gcpBaseUrl}${imageId}`;
@@ -116,25 +134,18 @@
                 mobileView.style.display = 'block';
                 desktopView.style.display = 'none';
                 
-                // ✨ 核心修改：整合手機版按鈕邏輯
                 const mobileActionBtn = document.getElementById('mobileActionBtn');
-                const mobileLegacyDownloadBtn = document.getElementById('mobileLegacyDownloadBtn');
                 
-                // 無論如何，舊的下載按鈕都不再需要了
-                mobileLegacyDownloadBtn.style.display = 'none'; 
-                
-                // 主按鈕的行為永遠是觸發 navigator.share
-                mobileActionBtn.addEventListener('click', () => mobileShareFull(imageUrl, downloadFilename));
+                // ✨ 將 shareMessage 傳遞給 mobileShare 函式
+                mobileActionBtn.addEventListener('click', () => mobileShare(imageUrl, downloadFilename, shareMessage));
 
-                // 根據模式決定主按鈕的文案
                 if (pageMode === 'download') {
                     mobileActionBtn.textContent = '下載圖片';
-                } else { // 預設的 'share' 模式
+                } else {
                     mobileActionBtn.textContent = '分享／下載圖片';
                 }
                 
             } else {
-                // 電腦版邏輯保持不變
                 mobileView.style.display = 'none';
                 desktopView.style.display = 'block';
                 
@@ -144,7 +155,11 @@
                     document.getElementById('qr-code-text').innerHTML = '或使用手機掃描 QR Code<br>下載圖片';
                 }
 
-                const qrCodeUrl = imageId ? `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(imageId)}&mode=${pageMode}` : window.location.href;
+                // ✨ 讓 QR Code 也包含 msg 參數，確保掃碼後體驗一致
+                let qrCodeUrl = imageId ? `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(imageId)}&mode=${pageMode}` : window.location.href;
+                if (shareMessage) {
+                    qrCodeUrl += `&msg=${encodeURIComponent(shareMessage)}`;
+                }
                 new QRCode(document.getElementById("qrcode"), {
                     text: qrCodeUrl,
                     width: 180,
