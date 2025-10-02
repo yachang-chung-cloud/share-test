@@ -4,17 +4,12 @@
     <meta charset="UTF-8">
     <title>諾和諾德 Novo Nordisk</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/davidshimjs-qrcodejs@0.0.2/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/easyqrcodejs@4.4.13/dist/easy.qrcode.min.js"></script>
     <style>
-        /* CSS 樣式保持不變，僅新增 logo 樣式 */
+        /* CSS 樣式保持不變 */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; text-align: center; padding: 20px; background-color: #f8f9fa; color: #333; }
         .container { max-width: 500px; margin: 0 auto; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 20px; }
-        /* ✨ 新增 Logo 樣式 */
-        #logo {
-            max-width: 150px; /* 控制 logo 最大寬度 */
-            display: block;
-            margin: 0 auto 20px auto; /* 置中並與下方圖片保持間距 */
-        }
+        #logo { max-width: 150px; display: block; margin: 0 auto 20px auto; }
         img#shareImage { max-width: 100%; height: auto; border-radius: 5px; margin-bottom: 20px; }
         .button-group button { 
             display: block;
@@ -38,20 +33,17 @@
 <body>
 
     <div class="container">
-        <!-- ✨ 1. 移除標題，改為 Logo -->
         <img id="logo" src="https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png" alt="Client Logo">
-        
         <img id="shareImage" src="" alt="分享圖片">
 
         <div id="mobile-view" style="display: none;" class="button-group">
-            <button id="mobileShareBtn">分享圖片</button>
-            <button id="mobileDownloadBtn">下載圖片</button>
+            <button id="mobileActionBtn">分享／下載圖片</button>
+            <button id="mobileLegacyDownloadBtn" style="display:none;">下載圖片</button> <!-- ✨ 為了簡化邏輯，我們只用一個主按鈕 -->
         </div>
 
         <div id="desktop-view" class="button-group">
             <button id="desktopDownloadBtn">下載圖片</button>
             <hr>
-            <!-- ✨ 3. 給予 QR Code 上方的文字一個 ID，方便 JS 修改 -->
             <p id="qr-code-text">或使用手機掃描 QR Code 分享圖片</p>
             <div id="qrcode"></div>
         </div>
@@ -61,31 +53,11 @@
         const gcpBaseUrl = 'https://storage.googleapis.com/nn-hcp-public/';
         const defaultImageId = 'NNBanner.jpg';
 
-        const downloadImage = async (url, filename) => { /* ... 內容不變 ... */ };
+        // 功能函式保持不變
+        const downloadImage = async (url, filename) => { /* ... */ };
+        const mobileShare = async (url, filename) => { /* ... */ };
         
-        // ✨ 2. 移除 mobileShare 中的 title 和 text 屬性
-        const mobileShare = async (url, filename) => {
-            try {
-                const response = await fetch(url); 
-                const blob = await response.blob();
-                const file = new File([blob], filename, { type: blob.type });
-
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file] // 只分享檔案，不帶標題和內文
-                    });
-                } else {
-                    alert('此裝置不支援檔案分享。');
-                }
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    console.error('分享失敗:', error);
-                    alert(`分享過程中發生錯誤: ${error.message}`);
-                }
-            }
-        };
-
-        // (此處為下載功能的完整程式碼，為求簡潔省略，請保留您原本的)
+        // (此處為下載與分享功能的完整程式碼，為求簡潔省略，請保留您原本的)
         const downloadImageFull = async (url, filename) => {
             try {
                 const response = await fetch(url);
@@ -100,24 +72,34 @@
                 window.URL.revokeObjectURL(blobUrl);
             } catch (error) { console.error('下載失敗:', error); alert('圖片下載失敗。'); }
         };
+        const mobileShareFull = async (url, filename) => {
+            try {
+                const response = await fetch(url); 
+                const blob = await response.blob();
+                const file = new File([blob], filename, { type: blob.type });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file] });
+                } else { alert('此裝置不支援檔案分享。'); }
+            } catch (error) { if (error.name !== 'AbortError') { console.error('分享失敗:', error); alert(`分享過程中發生錯誤: ${error.message}`); } }
+        };
 
         document.addEventListener('DOMContentLoaded', () => {
+            // ID和參數讀取邏輯保持不變
             const params = new URLSearchParams(window.location.search);
             const imageId = params.get('id');
-            // ✨ 3. 讀取 mode 參數，若不存在則預設為 'share'
             const pageMode = params.get('mode') || 'share'; 
-
-            let imageUrl;
-            let downloadFilename;
-
+            let imageUrl, downloadFilename;
             if (imageId) {
                 imageUrl = `${gcpBaseUrl}${imageId}`;
-                downloadFilename = `${imageId}.jpg`;
+                if (/\.(jpg|jpeg|png|gif|webp)$/i.test(imageId)) {
+                    downloadFilename = imageId;
+                } else {
+                    downloadFilename = `${imageId}.jpg`;
+                }
             } else {
                 imageUrl = `${gcpBaseUrl}${defaultImageId}`;
                 downloadFilename = defaultImageId;
             }
-
             const imageElement = document.getElementById('shareImage');
             imageElement.src = imageUrl;
             imageElement.onerror = () => {
@@ -134,30 +116,35 @@
                 mobileView.style.display = 'block';
                 desktopView.style.display = 'none';
                 
-                document.getElementById('mobileShareBtn').addEventListener('click', () => mobileShare(imageUrl, downloadFilename));
-                document.getElementById('mobileDownloadBtn').addEventListener('click', () => downloadImageFull(imageUrl, downloadFilename));
+                // ✨ 核心修改：整合手機版按鈕邏輯
+                const mobileActionBtn = document.getElementById('mobileActionBtn');
+                const mobileLegacyDownloadBtn = document.getElementById('mobileLegacyDownloadBtn');
+                
+                // 無論如何，舊的下載按鈕都不再需要了
+                mobileLegacyDownloadBtn.style.display = 'none'; 
+                
+                // 主按鈕的行為永遠是觸發 navigator.share
+                mobileActionBtn.addEventListener('click', () => mobileShareFull(imageUrl, downloadFilename));
 
-                // ✨ 3. 根據 mode 調整手機版 UI
+                // 根據模式決定主按鈕的文案
                 if (pageMode === 'download') {
-                    const mobileShareBtn = document.getElementById('mobileShareBtn');
-                    const mobileDownloadBtn = document.getElementById('mobileDownloadBtn');
-                    
-                    mobileShareBtn.textContent = '下載圖片'; // 修改第一顆按鈕文案
-                    mobileDownloadBtn.style.display = 'none'; // 移除第二顆按鈕
+                    mobileActionBtn.textContent = '下載圖片';
+                } else { // 預設的 'share' 模式
+                    mobileActionBtn.textContent = '分享／下載圖片';
                 }
                 
             } else {
+                // 電腦版邏輯保持不變
                 mobileView.style.display = 'none';
                 desktopView.style.display = 'block';
                 
                 document.getElementById('desktopDownloadBtn').addEventListener('click', () => downloadImageFull(imageUrl, downloadFilename));
 
-                // ✨ 3. 根據 mode 調整電腦版 UI 及 QR Code 連結
                 if (pageMode === 'download') {
-                    document.getElementById('qr-code-text').innerHTML = '或使用手機掃描 QR Code<br>下載圖片'; // 修改 QR Code 上方文案
+                    document.getElementById('qr-code-text').innerHTML = '或使用手機掃描 QR Code<br>下載圖片';
                 }
 
-                const qrCodeUrl = imageId ? `${window.location.origin}${window.location.pathname}?id=${imageId}&mode=${pageMode}` : window.location.href;
+                const qrCodeUrl = imageId ? `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(imageId)}&mode=${pageMode}` : window.location.href;
                 new QRCode(document.getElementById("qrcode"), {
                     text: qrCodeUrl,
                     width: 180,
