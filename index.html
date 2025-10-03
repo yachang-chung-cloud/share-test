@@ -5,26 +5,33 @@
     <title>諾和諾德 Novo Nordisk</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/easyqrcodejs@4.4.13/dist/easy.qrcode.min.js"></script>
+    <!-- ✨ 1. 引入 JSZip 函式庫，用於打包下載 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        /* CSS 樣式保持不變 */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; text-align: center; padding: 20px; background-color: #f8f9fa; color: #333; }
         .container { max-width: 500px; margin: 0 auto; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 20px; }
         #logo { max-width: 150px; display: block; margin: 0 auto 20px auto; }
-        img#shareImage { max-width: 100%; height: auto; border-radius: 5px; margin-bottom: 20px; }
-        .button-group button { 
-            display: block;
-            width: 100%;
-            padding: 15px;
-            font-size: 18px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            border: none;
-            background-color: #007bff;
-            color: white;
-            border-radius: 5px;
-            transition: background-color 0.2s;
+        
+        /* ✨ 2. 新增圖片容器的樣式 */
+        #image-container { margin-bottom: 20px; }
+        #image-container.single-image img {
+            width: 100%; /* 單張圖片時佔滿寬度 */
         }
-        .button-group button:hover { background-color: #0056b3; }
+        #image-container.multiple-images {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 多張圖片時一排兩張 */
+            gap: 15px;
+        }
+        #image-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+
+        .button-group button { 
+            display: block; width: 100%; padding: 15px; font-size: 18px; margin-bottom: 12px;
+            cursor: pointer; border: none; background-color: #007bff; color: white; border-radius: 5px;
+        }
         #qrcode { margin: 20px auto; padding: 10px; border: 1px solid #eee; display: inline-block; background-color: white; }
         #desktop-view p { font-size: 16px; color: #555; line-height: 1.5; }
         hr { border: 0; height: 1px; background-color: #eee; margin: 20px 0; }
@@ -34,16 +41,18 @@
 
     <div class="container">
         <img id="logo" src="https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png" alt="Client Logo">
-        <img id="shareImage" src="" alt="分享圖片">
+        
+        <!-- ✨ 3. 圖片現在會被動態插入到這個容器中 -->
+        <div id="image-container"></div>
 
         <div id="mobile-view" style="display: none;" class="button-group">
-            <button id="mobileActionBtn">分享／下載圖片</button>
+            <button id="mobileActionBtn"></button>
         </div>
 
         <div id="desktop-view" class="button-group">
-            <button id="desktopDownloadBtn">下載圖片</button>
+            <button id="desktopActionBtn"></button>
             <hr>
-            <p id="qr-code-text">或使用手機掃描 QR Code 分享圖片</p>
+            <p id="qr-code-text"></p>
             <div id="qrcode"></div>
         </div>
     </div>
@@ -52,27 +61,50 @@
         const gcpBaseUrl = 'https://storage.googleapis.com/nn-hcp-public/';
         const defaultImageId = 'NNBanner.jpg';
 
-        const downloadImage = async (url, filename) => { /* ... 內容不變 ... */ };
-        
-        // ✨ 核心修改：mobileShare 函式現在接收第三個參數 message
-        const mobileShare = async (url, filename, message) => {
+        // ✨ 4. 新增或修改功能函式
+        const fetchImageBlob = async (url) => {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+            return response.blob();
+        };
+
+        const downloadZip = async (imageUrls, filenames) => {
+            const zip = new JSZip();
+            const imagePromises = imageUrls.map(url => fetchImageBlob(url));
+            
             try {
-                const response = await fetch(url); 
-                const blob = await response.blob();
-                const file = new File([blob], filename, { type: blob.type });
+                const blobs = await Promise.all(imagePromises);
+                blobs.forEach((blob, index) => {
+                    zip.file(filenames[index], blob);
+                });
+                
+                const zipBlob = await zip.generateAsync({ type: "blob" });
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(zipBlob);
+                link.download = 'shared_images.zip';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (error) {
+                console.error('打包下載失敗:', error);
+                alert('圖片打包下載失敗。');
+            }
+        };
 
-                // 準備要分享的資料
-                const shareData = {
-                    files: [file]
-                };
+        const shareFiles = async (imageUrls, filenames, message) => {
+            const filePromises = imageUrls.map(async (url, index) => {
+                const blob = await fetchImageBlob(url);
+                return new File([blob], filenames[index], { type: blob.type });
+            });
 
-                // 如果 message 存在且不為空，就將它加入到分享資料中
-                if (message) {
-                    shareData.text = message;
-                }
+            try {
+                const files = await Promise.all(filePromises);
+                const shareData = { files };
+                if (message) shareData.text = message;
 
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share(shareData); // 分享包含訊息的資料
+                if (navigator.canShare && navigator.canShare({ files })) {
+                    await navigator.share(shareData);
                 } else {
                     alert('此裝置不支援檔案分享。');
                 }
@@ -83,88 +115,65 @@
                 }
             }
         };
-        
-        const downloadImageFull = async (url, filename) => {
-            try {
-                const response = await fetch(url);
-                const blob = await response.blob();
-                const blobUrl = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = blobUrl;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(blobUrl);
-            } catch (error) { console.error('下載失敗:', error); alert('圖片下載失敗。'); }
-        };
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const params = new URLSearchParams(window.location.search);
-            const imageId = params.get('id');
-            const pageMode = params.get('mode') || 'share'; 
-            // ✨ 讀取 msg 參數，若不存在則為 null
-            const shareMessage = params.get('msg'); 
+            const idParam = params.get('id');
+            const pageMode = params.get('mode') || 'share';
+            const shareMessage = params.get('msg');
 
-            let imageUrl, downloadFilename;
-            if (imageId) {
-                imageUrl = `${gcpBaseUrl}${imageId}`;
-                if (/\.(jpg|jpeg|png|gif|webp)$/i.test(imageId)) {
-                    downloadFilename = imageId;
-                } else {
-                    downloadFilename = `${imageId}.jpg`;
-                }
-            } else {
-                imageUrl = `${gcpBaseUrl}${defaultImageId}`;
-                downloadFilename = defaultImageId;
+            const imageIds = idParam ? idParam.split(',') : [defaultImageId];
+            const isMultiple = imageIds.length > 1;
+
+            const imageUrls = imageIds.map(id => `${gcpBaseUrl}${id}`);
+            const downloadFilenames = imageIds.map(id => (/\.(jpg|jpeg|png|gif|webp)$/i.test(id)) ? id : `${id}.jpg`);
+
+            // ✨ 5. 動態生成圖片
+            const imageContainer = document.getElementById('image-container');
+            imageContainer.className = isMultiple ? 'multiple-images' : 'single-image';
+            imageUrls.forEach(url => {
+                const img = document.createElement('img');
+                img.src = url;
+                img.onerror = () => img.style.display = 'none'; // 圖片載入失敗就隱藏
+                imageContainer.appendChild(img);
+            });
+            
+            // ✨ 6. 根據單圖/多圖和模式設定文案
+            let actionText, qrText;
+            if (pageMode === 'share') {
+                actionText = isMultiple ? '分享／下載所有圖片' : '分享／下載圖片';
+                qrText = isMultiple ? '或使用手機掃描 QR Code<br>分享所有圖片' : '或使用手機掃描 QR Code<br>分享圖片';
+            } else { // download mode
+                actionText = isMultiple ? '下載所有圖片' : '下載圖片';
+                qrText = isMultiple ? '或使用手機掃描 QR Code<br>下載所有圖片' : '或使用手機掃描 QR Code<br>下載圖片';
             }
-            const imageElement = document.getElementById('shareImage');
-            imageElement.src = imageUrl;
-            imageElement.onerror = () => {
-                alert('找不到指定的圖片，將顯示預設圖片。');
-                imageElement.src = `${gcpBaseUrl}${defaultImageId}`;
-                downloadFilename = defaultImageId;
-            };
-
-            const mobileView = document.getElementById('mobile-view');
-            const desktopView = document.getElementById('desktop-view');
+            
             const isMobile = () => /Mobi|Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
+            
             if (isMobile() && navigator.share) {
-                mobileView.style.display = 'block';
-                desktopView.style.display = 'none';
-                
-                const mobileActionBtn = document.getElementById('mobileActionBtn');
-                
-                // ✨ 將 shareMessage 傳遞給 mobileShare 函式
-                mobileActionBtn.addEventListener('click', () => mobileShare(imageUrl, downloadFilename, shareMessage));
-
-                if (pageMode === 'download') {
-                    mobileActionBtn.textContent = '下載圖片';
-                } else {
-                    mobileActionBtn.textContent = '分享／下載圖片';
-                }
-                
+                document.getElementById('mobile-view').style.display = 'block';
+                const mobileBtn = document.getElementById('mobileActionBtn');
+                mobileBtn.textContent = actionText;
+                mobileBtn.onclick = () => shareFiles(imageUrls, downloadFilenames, shareMessage);
             } else {
-                mobileView.style.display = 'none';
-                desktopView.style.display = 'block';
+                document.getElementById('desktop-view').style.display = 'block';
+                const desktopBtn = document.getElementById('desktopActionBtn');
+                desktopBtn.textContent = actionText;
+                document.getElementById('qr-code-text').innerHTML = qrText;
+
+                if (isMultiple) {
+                    desktopBtn.onclick = () => downloadZip(imageUrls, downloadFilenames);
+                } else {
+                    desktopBtn.onclick = () => {
+                        const link = document.createElement('a');
+                        link.href = imageUrls[0];
+                        link.download = downloadFilenames[0];
+                        link.click();
+                    };
+                }
                 
-                document.getElementById('desktopDownloadBtn').addEventListener('click', () => downloadImageFull(imageUrl, downloadFilename));
-
-                if (pageMode === 'download') {
-                    document.getElementById('qr-code-text').innerHTML = '或使用手機掃描 QR Code<br>下載圖片';
-                }
-
-                // ✨ 讓 QR Code 也包含 msg 參數，確保掃碼後體驗一致
-                let qrCodeUrl = imageId ? `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(imageId)}&mode=${pageMode}` : window.location.href;
-                if (shareMessage) {
-                    qrCodeUrl += `&msg=${encodeURIComponent(shareMessage)}`;
-                }
-                new QRCode(document.getElementById("qrcode"), {
-                    text: qrCodeUrl,
-                    width: 180,
-                    height: 180,
-                });
+                let qrCodeUrl = window.location.href; // QR Code 連結保持不變
+                new QRCode(document.getElementById("qrcode"), { text: qrCodeUrl, width: 180, height: 180 });
             }
         });
     </script>
