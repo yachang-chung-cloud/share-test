@@ -13,7 +13,7 @@
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
             text-align: center; 
-            padding: 20px; 
+            padding: 10px 20px 20px 20px; /* 上方 padding 減少，讓 logo 貼近頂部 */
             margin: 0;
             background-color: #f8f9fa; 
             background-size: cover;
@@ -22,52 +22,58 @@
             min-height: 100vh;
             color: #333; 
         }
+        
+        /* Logo (移出 Container) */
+        #logo { 
+            max-width: 160px; /* 略為縮小以節省空間 */
+            max-height: 70px; 
+            display: block; 
+            margin: 0 auto 15px auto; 
+            /* 增加陰影以確保在深色背景上的可讀性 */
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+
+        /* 白框容器 */
         .container { 
             max-width: 500px; 
             margin: 0 auto; 
-            background-color: rgba(255, 255, 255, 0.95); 
+            /* 透明度調整為 0.85 */
+            background-color: rgba(255, 255, 255, 0.85); 
             border-radius: 16px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
-            padding: 25px 20px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+            padding: 20px 20px; 
+            backdrop-filter: blur(5px); /* 增加磨砂玻璃效果 (支援的瀏覽器) */
         }
         
-        /* Logo 區域 */
-        #logo-wrapper {
-            margin: 0 auto 15px auto;
-            border-radius: 10px;
-            padding: 10px;
-            transition: all 0.3s ease;
-        }
-        /* 預設模式：無背景 */
-        #logo-wrapper.default-logo {
-            background: transparent;
-            padding: 0;
-        }
-        #logo { 
-            max-width: 180px; 
-            max-height: 80px; 
-            display: block; 
-            margin: 0 auto; 
-        }
-
         /* 標題 */
-        #page-title { font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #333; display: none; }
+        #page-title { 
+            font-size: 18px; /* 字體微調 */
+            font-weight: bold; 
+            margin-bottom: 15px; 
+            color: #333; 
+            display: none; 
+        }
 
         /* 圖片區域 */
-        #image-wrapper { margin-bottom: 20px; }
+        #image-wrapper { 
+            margin-bottom: 15px; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
         
         /* 縮圖區 (僅 Xenda 使用) */
         #thumbnail-container {
             display: none; 
             grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
+            gap: 8px;
             margin-bottom: 15px;
         }
         .thumb-img {
             width: 100%;
             aspect-ratio: 1/1;
             object-fit: cover;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             border: 2px solid transparent;
             transition: all 0.2s;
@@ -80,15 +86,32 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
 
-        /* 主圖顯示 */
-        .main-image { width: 100%; height: auto; border-radius: 8px; display: block; margin: 0 auto; }
+        /* 主圖顯示優化 (關鍵調整) */
+        .main-image { 
+            width: auto;           /* 寬度自動，保持比例 */
+            max-width: 100%;       /* 不超過容器寬度 */
+            max-height: 45vh;      /* 限制高度為螢幕的 45%，確保按鈕不被擠下去 */
+            object-fit: contain;   /* 確保圖片完整顯示 */
+            border-radius: 8px; 
+            display: block; 
+        }
         
-        /* 舊版 Grid 模式 */
-        .multiple-images-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        /* 舊版 Grid 模式 (相容舊有功能) */
+        .multiple-images-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 15px; 
+            width: 100%;
+        }
+        .multiple-images-grid img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
 
         /* 按鈕群組 */
         .button-group button { 
-            display: block; width: 100%; padding: 15px; font-size: 18px; margin-bottom: 12px;
+            display: block; width: 100%; padding: 12px; font-size: 16px; margin-bottom: 10px;
             cursor: pointer; border: none; background-color: #007bff; color: white; border-radius: 50px; 
             font-weight: bold;
             transition: background 0.3s;
@@ -103,55 +126,35 @@
         hr { border: 0; height: 1px; background-color: #eee; margin: 20px 0; }
         
         /* Disclaimer */
-        #disclaimer-text { font-size: 12px; color: #666; margin-top: 20px; line-height: 1.4; }
+        #disclaimer-text { font-size: 12px; color: #666; margin-top: 15px; line-height: 1.4; }
 
         /* === 專案特定樣式 (Themes) === */
         
         /* 1. 纖達日記 (Xenda) */
         body.theme-xenda { color: #333; }
-        body.theme-xenda .container { border-top: 5px solid #E480BD; }
+        body.theme-xenda .container { border-top: 4px solid #E480BD; }
         body.theme-xenda #page-title { color: #E480BD; }
         body.theme-xenda button { background: linear-gradient(135deg, #E480BD 0%, #F69DDF 100%); }
         body.theme-xenda .thumb-img.active { border-color: #E480BD; }
         
-        /* Xenda Logo 優化：深粉色漸層背景 + 陰影 */
-        body.theme-xenda #logo-wrapper {
-            background: linear-gradient(135deg, #E480BD 0%, #F69DDF 100%);
-            box-shadow: 0 4px 8px rgba(228, 128, 189, 0.4);
-        }
-        body.theme-xenda #logo {
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); /* Logo 投影 */
-        }
-
         /* 2. NNHCP */
         body.theme-nnhcp { color: #011965; }
-        body.theme-nnhcp .container { border-top: 5px solid #05AAFF; }
+        body.theme-nnhcp .container { border-top: 4px solid #05AAFF; }
         body.theme-nnhcp #page-title { color: #0133DA; }
         body.theme-nnhcp button { background: linear-gradient(135deg, #0133DA 0%, #05AAFF 100%); }
-
-        /* NNHCP Logo 優化：深藍色漸層背景 + 陰影 */
-        body.theme-nnhcp #logo-wrapper {
-            background: linear-gradient(135deg, #011965 0%, #0133DA 100%);
-            box-shadow: 0 4px 8px rgba(1, 25, 101, 0.4);
-        }
-        body.theme-nnhcp #logo {
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); /* Logo 投影 */
-        }
 
     </style>
 </head>
 <body>
 
+    <!-- Logo 移出 Container -->
+    <img id="logo" src="https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png" alt="Logo">
+
     <div class="container">
-        <!-- Logo Wrapper -->
-        <div id="logo-wrapper" class="default-logo">
-            <img id="logo" src="https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png" alt="Logo">
-        </div>
-        
         <!-- 標題 -->
         <div id="page-title"></div>
 
-        <!-- 縮圖區 (僅特定 Campaign 顯示) -->
+        <!-- 縮圖區 (僅 Xenda 顯示) -->
         <div id="thumbnail-container"></div>
 
         <!-- 圖片顯示區 -->
@@ -189,7 +192,7 @@
                 bgImage: 'https://storage.googleapis.com/nn-hcp-public/XendaDiary_review_background.jpg',
                 title: '分享我的 2025 輕盈成就',
                 btnText: '分享',
-                disclaimer: '', // 清空文字
+                disclaimer: '',
                 fileMapping: {
                     '_1.jpg': '我的 2025 年體重變化.jpg',
                     '_2.jpg': '我的 2025 年飲食記錄.jpg',
@@ -203,7 +206,7 @@
                 bgImage: 'https://storage.googleapis.com/nn-hcp-public/nnhcp_review_background.png',
                 title: '分享我的 2025 精彩瞬間',
                 btnText: '分享',
-                disclaimer: '', // 清空文字
+                disclaimer: '', 
                 renameTo: '我的 2025 年精彩瞬間.jpg'
             }
         };
@@ -224,7 +227,6 @@
         const shareFile = async (imageUrl, filename) => {
             try {
                 const blob = await fetchImageBlob(imageUrl);
-                // 確保副檔名正確
                 if (!filename.endsWith('.jpg') && !filename.endsWith('.png')) filename += '.jpg';
                 
                 const file = new File([blob], filename, { type: blob.type });
@@ -233,14 +235,12 @@
                 if (navigator.canShare && navigator.canShare(shareData)) {
                     await navigator.share(shareData);
                 } else {
-                    // Fallback: 下載檔案
                     const link = document.createElement('a');
                     link.href = URL.createObjectURL(blob);
                     link.download = filename;
                     link.click();
                 }
             } catch (error) {
-                // 忽略使用者取消分享的錯誤 (AbortError)
                 if (error.name !== 'AbortError') {
                     console.error('Share failed:', error);
                     alert('分享功能無法使用，請嘗試截圖或長按圖片儲存。');
@@ -287,7 +287,6 @@
                 const conf = CONFIG.xenda;
                 applyTheme('theme-xenda', conf);
 
-                // 生成圖片 URL
                 const images = [1, 2, 3, 4].map(num => ({
                     id: `${num}`,
                     url: `${conf.baseUrl}${uid}_${num}.jpg`,
@@ -296,7 +295,6 @@
 
                 thumbContainer.style.display = 'grid';
                 
-                // 預設顯示第 4 張
                 let currentImgObj = images[3]; 
 
                 images.forEach(imgObj => {
@@ -327,7 +325,6 @@
                 const conf = CONFIG.nnhcp;
                 applyTheme('theme-nnhcp', conf);
 
-                // 修正：明確加入 .jpg
                 const imgUrl = `${conf.baseUrl}${uid}.jpg`; 
                 
                 updateMainImage(imgUrl);
@@ -353,8 +350,7 @@
                     imageUrls.forEach(url => {
                         const img = document.createElement('img');
                         img.src = url;
-                        img.style.width = '100%';
-                        img.style.borderRadius = '5px';
+                        // 移除 style 屬性，改用 CSS 控制
                         imageWrapper.appendChild(img);
                     });
                 } else {
@@ -397,7 +393,6 @@
 
                 actionBtn.textContent = conf.btnText;
                 
-                // 處理免責聲明：若無文字則隱藏
                 const disclaimerEl = document.getElementById('disclaimer-text');
                 if (conf.disclaimer) {
                     disclaimerEl.textContent = conf.disclaimer;
