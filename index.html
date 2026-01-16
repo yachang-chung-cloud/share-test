@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>諾和諾德 Novo Nordisk</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 原有套件 -->
+    <!-- 套件 -->
     <script src="https://cdn.jsdelivr.net/npm/easyqrcodejs@4.4.13/dist/easy.qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
@@ -25,14 +25,32 @@
         .container { 
             max-width: 500px; 
             margin: 0 auto; 
-            background-color: rgba(255, 255, 255, 0.95); /* 增加一點透明度讓背景透出 */
-            border-radius: 16px; /* 更圓潤 */
+            background-color: rgba(255, 255, 255, 0.95); 
+            border-radius: 16px; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
             padding: 25px 20px; 
         }
         
-        /* Logo 與 標題 */
-        #logo { max-width: 180px; max-height: 80px; display: block; margin: 0 auto 15px auto; }
+        /* Logo 區域 */
+        #logo-wrapper {
+            margin: 0 auto 15px auto;
+            border-radius: 10px;
+            padding: 10px;
+            transition: all 0.3s ease;
+        }
+        /* 預設模式：無背景 */
+        #logo-wrapper.default-logo {
+            background: transparent;
+            padding: 0;
+        }
+        #logo { 
+            max-width: 180px; 
+            max-height: 80px; 
+            display: block; 
+            margin: 0 auto; 
+        }
+
+        /* 標題 */
         #page-title { font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #333; display: none; }
 
         /* 圖片區域 */
@@ -40,7 +58,7 @@
         
         /* 縮圖區 (僅 Xenda 使用) */
         #thumbnail-container {
-            display: none; /* 預設隱藏 */
+            display: none; 
             grid-template-columns: repeat(4, 1fr);
             gap: 10px;
             margin-bottom: 15px;
@@ -56,7 +74,7 @@
             opacity: 0.6;
         }
         .thumb-img.active {
-            border-color: #E480BD; /* Xenda 主色 */
+            border-color: #E480BD;
             opacity: 1;
             transform: scale(1.05);
             box-shadow: 0 2px 6px rgba(0,0,0,0.2);
@@ -65,20 +83,21 @@
         /* 主圖顯示 */
         .main-image { width: 100%; height: auto; border-radius: 8px; display: block; margin: 0 auto; }
         
-        /* 舊版 Grid 模式 (相容舊有功能) */
+        /* 舊版 Grid 模式 */
         .multiple-images-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
 
         /* 按鈕群組 */
         .button-group button { 
             display: block; width: 100%; padding: 15px; font-size: 18px; margin-bottom: 12px;
-            cursor: pointer; border: none; background-color: #007bff; color: white; border-radius: 50px; /* 圓角按鈕 */
+            cursor: pointer; border: none; background-color: #007bff; color: white; border-radius: 50px; 
             font-weight: bold;
             transition: background 0.3s;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         .button-group button:active { transform: translateY(1px); }
 
-        /* QR Code 與 Desktop */
+        /* Desktop View */
+        #desktop-extra { display: none; }
         #qrcode { margin: 20px auto; padding: 10px; border: 1px solid #eee; display: inline-block; background-color: white; border-radius: 8px;}
         #desktop-view p { font-size: 16px; color: #555; line-height: 1.5; }
         hr { border: 0; height: 1px; background-color: #eee; margin: 20px 0; }
@@ -88,28 +107,48 @@
 
         /* === 專案特定樣式 (Themes) === */
         
-        /* 纖達日記 (Xenda) */
+        /* 1. 纖達日記 (Xenda) */
         body.theme-xenda { color: #333; }
-        body.theme-xenda .container { border-top: 5px solid #E480BD; } /* 裝飾線 */
+        body.theme-xenda .container { border-top: 5px solid #E480BD; }
         body.theme-xenda #page-title { color: #E480BD; }
         body.theme-xenda button { background: linear-gradient(135deg, #E480BD 0%, #F69DDF 100%); }
         body.theme-xenda .thumb-img.active { border-color: #E480BD; }
+        
+        /* Xenda Logo 優化：深粉色漸層背景 + 陰影 */
+        body.theme-xenda #logo-wrapper {
+            background: linear-gradient(135deg, #E480BD 0%, #F69DDF 100%);
+            box-shadow: 0 4px 8px rgba(228, 128, 189, 0.4);
+        }
+        body.theme-xenda #logo {
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); /* Logo 投影 */
+        }
 
-        /* NNHCP */
+        /* 2. NNHCP */
         body.theme-nnhcp { color: #011965; }
         body.theme-nnhcp .container { border-top: 5px solid #05AAFF; }
         body.theme-nnhcp #page-title { color: #0133DA; }
         body.theme-nnhcp button { background: linear-gradient(135deg, #0133DA 0%, #05AAFF 100%); }
+
+        /* NNHCP Logo 優化：深藍色漸層背景 + 陰影 */
+        body.theme-nnhcp #logo-wrapper {
+            background: linear-gradient(135deg, #011965 0%, #0133DA 100%);
+            box-shadow: 0 4px 8px rgba(1, 25, 101, 0.4);
+        }
+        body.theme-nnhcp #logo {
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); /* Logo 投影 */
+        }
 
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Logo -->
-        <img id="logo" src="https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png" alt="Logo">
+        <!-- Logo Wrapper -->
+        <div id="logo-wrapper" class="default-logo">
+            <img id="logo" src="https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png" alt="Logo">
+        </div>
         
-        <!-- 標題 (新增) -->
+        <!-- 標題 -->
         <div id="page-title"></div>
 
         <!-- 縮圖區 (僅特定 Campaign 顯示) -->
@@ -123,8 +162,8 @@
             <button id="actionBtn" style="display: none;">分享</button>
         </div>
         
-        <!-- Desktop View 提示 (若在電腦開啟) -->
-        <div id="desktop-extra" style="display: none;">
+        <!-- Desktop View 提示 -->
+        <div id="desktop-extra">
             <hr>
             <p id="qr-code-text"></p>
             <div id="qrcode"></div>
@@ -140,7 +179,7 @@
             default: {
                 baseUrl: 'https://storage.googleapis.com/nn-hcp-public/',
                 logo: 'https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png',
-                bg: '', // 預設灰底
+                bg: '', 
                 disclaimerShare: '僅限分享給專業醫療人員之參考。',
                 disclaimerDownload: '僅供專業醫療人員之參考。'
             },
@@ -150,7 +189,7 @@
                 bgImage: 'https://storage.googleapis.com/nn-hcp-public/XendaDiary_review_background.jpg',
                 title: '分享我的 2025 輕盈成就',
                 btnText: '分享',
-                disclaimer: '僅供病患個人年度回顧分享。',
+                disclaimer: '', // 清空文字
                 fileMapping: {
                     '_1.jpg': '我的 2025 年體重變化.jpg',
                     '_2.jpg': '我的 2025 年飲食記錄.jpg',
@@ -164,16 +203,22 @@
                 bgImage: 'https://storage.googleapis.com/nn-hcp-public/nnhcp_review_background.png',
                 title: '分享我的 2025 精彩瞬間',
                 btnText: '分享',
-                disclaimer: '僅限分享給專業醫療人員之參考。',
+                disclaimer: '', // 清空文字
                 renameTo: '我的 2025 年精彩瞬間.jpg'
             }
         };
 
         // === 工具函式 ===
         const fetchImageBlob = async (url) => {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`Failed to fetch ${url}`);
-            return response.blob();
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+                return response.blob();
+            } catch (e) {
+                console.error(e);
+                alert('圖片下載失敗，請檢查網路或連結。');
+                throw e;
+            }
         };
 
         const shareFile = async (imageUrl, filename) => {
@@ -195,12 +240,14 @@
                     link.click();
                 }
             } catch (error) {
-                console.error('Share failed:', error);
-                alert('分享功能無法使用，請嘗試截圖或長按圖片儲存。');
+                // 忽略使用者取消分享的錯誤 (AbortError)
+                if (error.name !== 'AbortError') {
+                    console.error('Share failed:', error);
+                    alert('分享功能無法使用，請嘗試截圖或長按圖片儲存。');
+                }
             }
         };
 
-        // 舊有的多檔打包下載 (保留給 default 模式使用)
         const downloadZip = async (imageUrls, filenames) => {
             const zip = new JSZip();
             const blobs = await Promise.all(imageUrls.map(url => fetchImageBlob(url)));
@@ -215,19 +262,17 @@
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             
-            // 判斷活動類型: 'xenda', 'nnhcp' 或 null (default)
             const campaign = params.get('campaign'); 
-            const uid = params.get('uid'); // 新增 uid 參數
-            const idParam = params.get('id'); // 舊有參數
-            const mode = params.get('mode'); // share/download
+            const uid = params.get('uid'); 
+            const idParam = params.get('id');
+            const mode = params.get('mode'); 
             
             const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
             const actionBtn = document.getElementById('actionBtn');
             const imageWrapper = document.getElementById('image-wrapper');
             const thumbContainer = document.getElementById('thumbnail-container');
 
-            // === 1. 初始化邏輯分支 ===
-            
+            // === 1. 初始化邏輯 ===
             if (campaign === 'xenda' && uid) {
                 initXenda(uid);
             } else if (campaign === 'nnhcp' && uid) {
@@ -242,41 +287,35 @@
                 const conf = CONFIG.xenda;
                 applyTheme('theme-xenda', conf);
 
-                // 生成 4 張圖片 URL
+                // 生成圖片 URL
                 const images = [1, 2, 3, 4].map(num => ({
                     id: `${num}`,
                     url: `${conf.baseUrl}${uid}_${num}.jpg`,
                     suffix: `_${num}.jpg`
                 }));
 
-                // 顯示縮圖區
                 thumbContainer.style.display = 'grid';
                 
-                // 預設顯示第 4 張 (_4.jpg)
+                // 預設顯示第 4 張
                 let currentImgObj = images[3]; 
 
-                // 建立縮圖 DOM
                 images.forEach(imgObj => {
                     const thumb = document.createElement('img');
                     thumb.src = imgObj.url;
                     thumb.className = 'thumb-img';
-                    if (imgObj.id === '4') thumb.classList.add('active'); // 預設選中
+                    if (imgObj.id === '4') thumb.classList.add('active'); 
 
                     thumb.onclick = () => {
-                        // 切換 Active 樣式
                         document.querySelectorAll('.thumb-img').forEach(el => el.classList.remove('active'));
                         thumb.classList.add('active');
-                        // 切換大圖
                         updateMainImage(imgObj.url);
                         currentImgObj = imgObj;
                     };
                     thumbContainer.appendChild(thumb);
                 });
 
-                // 建立初始大圖
                 updateMainImage(currentImgObj.url);
 
-                // 設定按鈕事件
                 actionBtn.style.display = 'block';
                 actionBtn.onclick = () => {
                     const rename = conf.fileMapping[currentImgObj.suffix] || 'image.jpg';
@@ -288,10 +327,8 @@
                 const conf = CONFIG.nnhcp;
                 applyTheme('theme-nnhcp', conf);
 
-                const imgUrl = `${conf.baseUrl}${uid}`; // 注意：這裡假設原始檔名沒有 .jpg，若有需調整
-                // 為了保險，我們可以檢查 url，但需求範例只有 uid
-                // 假設 GCP 上是 uid (無副檔名) 或 uid.jpg，通常瀏覽器會處理 Content-Type
-                // 這裡依需求範例處理：
+                // 修正：明確加入 .jpg
+                const imgUrl = `${conf.baseUrl}${uid}.jpg`; 
                 
                 updateMainImage(imgUrl);
 
@@ -311,7 +348,6 @@
                 const imageUrls = idList.map(id => `${conf.baseUrl}${id}`);
                 const isMultiple = idList.length > 1;
 
-                // 渲染圖片
                 if (isMultiple) {
                     imageWrapper.className = 'multiple-images-grid';
                     imageUrls.forEach(url => {
@@ -325,7 +361,6 @@
                     updateMainImage(imageUrls[0]);
                 }
 
-                // 設定按鈕
                 const btnText = (pageMode === 'download') ? '下載圖片' : '分享／下載圖片';
                 actionBtn.textContent = isMultiple ? `打包${btnText}` : btnText;
                 actionBtn.style.display = 'block';
@@ -334,9 +369,8 @@
                     if (isMobile && navigator.share && !isMultiple) {
                         shareFile(imageUrls[0], idList[0]);
                     } else if (isMultiple) {
-                        downloadZip(imageUrls, idList); // 需保留原始檔名
+                        downloadZip(imageUrls, idList); 
                     } else {
-                        // 單張下載 fallback
                         const link = document.createElement('a');
                         link.href = imageUrls[0];
                         link.download = idList[0];
@@ -344,11 +378,10 @@
                     }
                 };
                 
-                // Default 模式才顯示 QR Code (如果是電腦版)
                 setupDesktopView(window.location.href);
             }
 
-            // === 輔助 UI 函式 ===
+            // === 輔助函式 ===
 
             function applyTheme(themeClass, conf) {
                 document.body.classList.add(themeClass);
@@ -363,26 +396,32 @@
                 titleEl.style.display = 'block';
 
                 actionBtn.textContent = conf.btnText;
-                document.getElementById('disclaimer-text').textContent = conf.disclaimer;
                 
-                // 新模式下，電腦版也盡量顯示大按鈕，隱藏 QR Code 區域，因為主要透過手機 LIFF 開啟
-                // 但保留 QR Code 以防萬一，但文字不顯示
+                // 處理免責聲明：若無文字則隱藏
+                const disclaimerEl = document.getElementById('disclaimer-text');
+                if (conf.disclaimer) {
+                    disclaimerEl.textContent = conf.disclaimer;
+                } else {
+                    disclaimerEl.style.display = 'none';
+                }
             }
 
             function updateMainImage(url) {
-                // 清空並重繪大圖
                 imageWrapper.innerHTML = '';
-                imageWrapper.className = ''; // 移除 grid class
+                imageWrapper.className = ''; 
                 const img = document.createElement('img');
                 img.src = url;
                 img.className = 'main-image';
                 
-                // 錯誤處理
                 img.onerror = () => {
                     img.style.display = 'none';
-                    imageWrapper.textContent = '圖片載入失敗，請稍後再試。';
+                    if (!url.includes('_1.jpg') && !url.includes('_2.jpg')) {
+                         const errorMsg = document.createElement('div');
+                         errorMsg.textContent = '圖片載入失敗，請確認檔案是否存在。';
+                         errorMsg.style.padding = '20px';
+                         imageWrapper.appendChild(errorMsg);
+                    }
                 };
-                
                 imageWrapper.appendChild(img);
             }
 
