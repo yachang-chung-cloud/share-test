@@ -4,162 +4,395 @@
     <meta charset="UTF-8">
     <title>諾和諾德 Novo Nordisk</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 原有套件 -->
     <script src="https://cdn.jsdelivr.net/npm/easyqrcodejs@4.4.13/dist/easy.qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        /* CSS 樣式保持不變 */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; text-align: center; padding: 20px; background-color: #f8f9fa; color: #333; }
-        .container { max-width: 500px; margin: 0 auto; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 20px; }
-        #logo { max-width: 150px; display: block; margin: 0 auto 20px auto; }
-        #image-container { margin-bottom: 20px; }
-        #image-container.single-image img { width: 100%; }
-        #image-container.multiple-images { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-        #image-container img { width: 100%; height: auto; border-radius: 5px; }
+        /* === 基礎重置與共用樣式 === */
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            text-align: center; 
+            padding: 20px; 
+            margin: 0;
+            background-color: #f8f9fa; 
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: #333; 
+        }
+        .container { 
+            max-width: 500px; 
+            margin: 0 auto; 
+            background-color: rgba(255, 255, 255, 0.95); /* 增加一點透明度讓背景透出 */
+            border-radius: 16px; /* 更圓潤 */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+            padding: 25px 20px; 
+        }
+        
+        /* Logo 與 標題 */
+        #logo { max-width: 180px; max-height: 80px; display: block; margin: 0 auto 15px auto; }
+        #page-title { font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #333; display: none; }
+
+        /* 圖片區域 */
+        #image-wrapper { margin-bottom: 20px; }
+        
+        /* 縮圖區 (僅 Xenda 使用) */
+        #thumbnail-container {
+            display: none; /* 預設隱藏 */
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .thumb-img {
+            width: 100%;
+            aspect-ratio: 1/1;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            opacity: 0.6;
+        }
+        .thumb-img.active {
+            border-color: #E480BD; /* Xenda 主色 */
+            opacity: 1;
+            transform: scale(1.05);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        /* 主圖顯示 */
+        .main-image { width: 100%; height: auto; border-radius: 8px; display: block; margin: 0 auto; }
+        
+        /* 舊版 Grid 模式 (相容舊有功能) */
+        .multiple-images-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+
+        /* 按鈕群組 */
         .button-group button { 
             display: block; width: 100%; padding: 15px; font-size: 18px; margin-bottom: 12px;
-            cursor: pointer; border: none; background-color: #007bff; color: white; border-radius: 5px;
+            cursor: pointer; border: none; background-color: #007bff; color: white; border-radius: 50px; /* 圓角按鈕 */
+            font-weight: bold;
+            transition: background 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        #qrcode { margin: 20px auto; padding: 10px; border: 1px solid #eee; display: inline-block; background-color: white; }
+        .button-group button:active { transform: translateY(1px); }
+
+        /* QR Code 與 Desktop */
+        #qrcode { margin: 20px auto; padding: 10px; border: 1px solid #eee; display: inline-block; background-color: white; border-radius: 8px;}
         #desktop-view p { font-size: 16px; color: #555; line-height: 1.5; }
         hr { border: 0; height: 1px; background-color: #eee; margin: 20px 0; }
         
-        /* ✨ 2. 新增 disclaimer 的樣式 */
-        #disclaimer-text {
-            font-size: 12px;
-            color: #888;
-            margin-top: 20px; /* 和上面的按鈕或QR Code保持距離 */
-        }
+        /* Disclaimer */
+        #disclaimer-text { font-size: 12px; color: #666; margin-top: 20px; line-height: 1.4; }
+
+        /* === 專案特定樣式 (Themes) === */
+        
+        /* 纖達日記 (Xenda) */
+        body.theme-xenda { color: #333; }
+        body.theme-xenda .container { border-top: 5px solid #E480BD; } /* 裝飾線 */
+        body.theme-xenda #page-title { color: #E480BD; }
+        body.theme-xenda button { background: linear-gradient(135deg, #E480BD 0%, #F69DDF 100%); }
+        body.theme-xenda .thumb-img.active { border-color: #E480BD; }
+
+        /* NNHCP */
+        body.theme-nnhcp { color: #011965; }
+        body.theme-nnhcp .container { border-top: 5px solid #05AAFF; }
+        body.theme-nnhcp #page-title { color: #0133DA; }
+        body.theme-nnhcp button { background: linear-gradient(135deg, #0133DA 0%, #05AAFF 100%); }
+
     </style>
 </head>
 <body>
 
     <div class="container">
-        <img id="logo" src="https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png" alt="Client Logo">
-        <div id="image-container"></div>
+        <!-- Logo -->
+        <img id="logo" src="https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png" alt="Logo">
+        
+        <!-- 標題 (新增) -->
+        <div id="page-title"></div>
 
-        <div id="mobile-view" style="display: none;" class="button-group">
-            <button id="mobileActionBtn"></button>
+        <!-- 縮圖區 (僅特定 Campaign 顯示) -->
+        <div id="thumbnail-container"></div>
+
+        <!-- 圖片顯示區 -->
+        <div id="image-wrapper"></div>
+
+        <!-- 按鈕區 -->
+        <div class="button-group">
+            <button id="actionBtn" style="display: none;">分享</button>
         </div>
         
-        <div id="desktop-view" style="display: none;" class="button-group">
-            <button id="desktopActionBtn"></button>
+        <!-- Desktop View 提示 (若在電腦開啟) -->
+        <div id="desktop-extra" style="display: none;">
             <hr>
             <p id="qr-code-text"></p>
             <div id="qrcode"></div>
         </div>
         
-        <!-- ✨ 1. 新增 disclaimer 文字的容器 -->
+        <!-- Disclaimer -->
         <p id="disclaimer-text"></p>
-
     </div>
 
     <script>
-        const gcpBaseUrl = 'https://storage.googleapis.com/nn-hcp-public/';
-        const defaultImageId = 'NNBanner.jpg';
+        // === 設定檔 ===
+        const CONFIG = {
+            default: {
+                baseUrl: 'https://storage.googleapis.com/nn-hcp-public/',
+                logo: 'https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png',
+                bg: '', // 預設灰底
+                disclaimerShare: '僅限分享給專業醫療人員之參考。',
+                disclaimerDownload: '僅供專業醫療人員之參考。'
+            },
+            xenda: {
+                baseUrl: 'https://storage.googleapis.com/nn-hcp-public/XendaDiary/',
+                logo: 'https://storage.googleapis.com/nn-hcp-public/XendaDiary_review_logo.png',
+                bgImage: 'https://storage.googleapis.com/nn-hcp-public/XendaDiary_review_background.jpg',
+                title: '分享我的 2025 輕盈成就',
+                btnText: '分享',
+                disclaimer: '僅供病患個人年度回顧分享。',
+                fileMapping: {
+                    '_1.jpg': '我的 2025 年體重變化.jpg',
+                    '_2.jpg': '我的 2025 年飲食記錄.jpg',
+                    '_3.jpg': '我的 2025 年健康軌跡.jpg',
+                    '_4.jpg': '我的 2025 年輕盈成就.jpg'
+                }
+            },
+            nnhcp: {
+                baseUrl: 'https://storage.googleapis.com/nn-hcp-public/nnhcp/',
+                logo: 'https://storage.googleapis.com/nn-hcp-public/nnhcp_review_logo.png',
+                bgImage: 'https://storage.googleapis.com/nn-hcp-public/nnhcp_review_background.png',
+                title: '分享我的 2025 精彩瞬間',
+                btnText: '分享',
+                disclaimer: '僅限分享給專業醫療人員之參考。',
+                renameTo: '我的 2025 年精彩瞬間.jpg'
+            }
+        };
 
-        // ... 功能函式 (fetchImageBlob, downloadZip, shareFiles) 保持不變 ...
+        // === 工具函式 ===
         const fetchImageBlob = async (url) => {
             const response = await fetch(url);
             if (!response.ok) throw new Error(`Failed to fetch ${url}`);
             return response.blob();
         };
+
+        const shareFile = async (imageUrl, filename) => {
+            try {
+                const blob = await fetchImageBlob(imageUrl);
+                // 確保副檔名正確
+                if (!filename.endsWith('.jpg') && !filename.endsWith('.png')) filename += '.jpg';
+                
+                const file = new File([blob], filename, { type: blob.type });
+                const shareData = { files: [file] };
+
+                if (navigator.canShare && navigator.canShare(shareData)) {
+                    await navigator.share(shareData);
+                } else {
+                    // Fallback: 下載檔案
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = filename;
+                    link.click();
+                }
+            } catch (error) {
+                console.error('Share failed:', error);
+                alert('分享功能無法使用，請嘗試截圖或長按圖片儲存。');
+            }
+        };
+
+        // 舊有的多檔打包下載 (保留給 default 模式使用)
         const downloadZip = async (imageUrls, filenames) => {
             const zip = new JSZip();
-            const imagePromises = imageUrls.map(url => fetchImageBlob(url));
-            try {
-                const blobs = await Promise.all(imagePromises);
-                blobs.forEach((blob, index) => { zip.file(filenames[index], blob); });
-                const zipBlob = await zip.generateAsync({ type: "blob" });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(zipBlob);
-                link.download = 'shared_images.zip';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            } catch (error) { console.error('打包下載失敗:', error); alert('圖片打包下載失敗。'); }
-        };
-        const shareFiles = async (imageUrls, filenames, message) => {
-            const filePromises = imageUrls.map(async (url, index) => {
-                const blob = await fetchImageBlob(url);
-                return new File([blob], filenames[index], { type: blob.type });
-            });
-            try {
-                const files = await Promise.all(filePromises);
-                const shareData = { files };
-                if (message) shareData.text = message;
-                if (navigator.canShare && navigator.canShare({ files })) {
-                    await navigator.share(shareData);
-                } else { alert('此裝置不支援檔案分享。'); }
-            } catch (error) { if (error.name !== 'AbortError') { console.error('分享失敗:', error); alert(`分享過程中發生錯誤: ${error.message}`); } }
+            const blobs = await Promise.all(imageUrls.map(url => fetchImageBlob(url)));
+            blobs.forEach((blob, i) => zip.file(filenames[i], blob));
+            const content = await zip.generateAsync({type:"blob"});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = 'shared_images.zip';
+            link.click();
         };
 
-        document.addEventListener('DOMContentLoaded', async () => {
+        document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
-            const idParam = params.get('id');
-            const pageMode = params.get('mode') || 'share';
-            const shareMessage = params.get('msg');
-            const imageIds = idParam ? idParam.split(',') : [defaultImageId];
-            const isMultiple = imageIds.length > 1;
-            const imageUrls = imageIds.map(id => `${gcpBaseUrl}${id}`);
-            const downloadFilenames = imageIds.map(id => (/\.(jpg|jpeg|png|gif|webp)$/i.test(id)) ? id : `${id}.jpg`);
-            const imageContainer = document.getElementById('image-container');
-            imageContainer.className = isMultiple ? 'multiple-images' : 'single-image';
-            imageUrls.forEach(url => {
-                const img = document.createElement('img');
-                img.src = url;
-                img.onerror = () => img.style.display = 'none';
-                imageContainer.appendChild(img);
-            });
-            let actionText, qrText;
-            if (pageMode === 'share') {
-                actionText = isMultiple ? '分享／下載所有圖片' : '分享／下載圖片';
-                qrText = isMultiple ? '或使用手機掃描 QR Code<br>分享所有圖片' : '或使用手機掃描 QR Code<br>分享圖片';
+            
+            // 判斷活動類型: 'xenda', 'nnhcp' 或 null (default)
+            const campaign = params.get('campaign'); 
+            const uid = params.get('uid'); // 新增 uid 參數
+            const idParam = params.get('id'); // 舊有參數
+            const mode = params.get('mode'); // share/download
+            
+            const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+            const actionBtn = document.getElementById('actionBtn');
+            const imageWrapper = document.getElementById('image-wrapper');
+            const thumbContainer = document.getElementById('thumbnail-container');
+
+            // === 1. 初始化邏輯分支 ===
+            
+            if (campaign === 'xenda' && uid) {
+                initXenda(uid);
+            } else if (campaign === 'nnhcp' && uid) {
+                initNNHCP(uid);
             } else {
-                actionText = isMultiple ? '下載所有圖片' : '下載圖片';
-                qrText = isMultiple ? '或使用手機掃描 QR Code<br>下載所有圖片' : '或使用手機掃描 QR Code<br>下載圖片';
+                initDefault(idParam, mode);
             }
-            
-            const isMobile = () => /Mobi|Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            
-            const mobileView = document.getElementById('mobile-view');
-            const desktopView = document.getElementById('desktop-view');
 
-            if (isMobile() && navigator.share) {
-                mobileView.style.display = 'block';
-                desktopView.style.display = 'none';
+            // === 2. 各模式初始化函式 ===
 
-                const mobileBtn = document.getElementById('mobileActionBtn');
-                mobileBtn.textContent = actionText;
-                mobileBtn.onclick = () => shareFiles(imageUrls, downloadFilenames, shareMessage);
-            } else {
-                mobileView.style.display = 'none';
-                desktopView.style.display = 'block';
+            function initXenda(uid) {
+                const conf = CONFIG.xenda;
+                applyTheme('theme-xenda', conf);
 
-                const desktopBtn = document.getElementById('desktopActionBtn');
-                desktopBtn.textContent = actionText;
-                document.getElementById('qr-code-text').innerHTML = qrText;
+                // 生成 4 張圖片 URL
+                const images = [1, 2, 3, 4].map(num => ({
+                    id: `${num}`,
+                    url: `${conf.baseUrl}${uid}_${num}.jpg`,
+                    suffix: `_${num}.jpg`
+                }));
 
+                // 顯示縮圖區
+                thumbContainer.style.display = 'grid';
+                
+                // 預設顯示第 4 張 (_4.jpg)
+                let currentImgObj = images[3]; 
+
+                // 建立縮圖 DOM
+                images.forEach(imgObj => {
+                    const thumb = document.createElement('img');
+                    thumb.src = imgObj.url;
+                    thumb.className = 'thumb-img';
+                    if (imgObj.id === '4') thumb.classList.add('active'); // 預設選中
+
+                    thumb.onclick = () => {
+                        // 切換 Active 樣式
+                        document.querySelectorAll('.thumb-img').forEach(el => el.classList.remove('active'));
+                        thumb.classList.add('active');
+                        // 切換大圖
+                        updateMainImage(imgObj.url);
+                        currentImgObj = imgObj;
+                    };
+                    thumbContainer.appendChild(thumb);
+                });
+
+                // 建立初始大圖
+                updateMainImage(currentImgObj.url);
+
+                // 設定按鈕事件
+                actionBtn.style.display = 'block';
+                actionBtn.onclick = () => {
+                    const rename = conf.fileMapping[currentImgObj.suffix] || 'image.jpg';
+                    shareFile(currentImgObj.url, rename);
+                };
+            }
+
+            function initNNHCP(uid) {
+                const conf = CONFIG.nnhcp;
+                applyTheme('theme-nnhcp', conf);
+
+                const imgUrl = `${conf.baseUrl}${uid}`; // 注意：這裡假設原始檔名沒有 .jpg，若有需調整
+                // 為了保險，我們可以檢查 url，但需求範例只有 uid
+                // 假設 GCP 上是 uid (無副檔名) 或 uid.jpg，通常瀏覽器會處理 Content-Type
+                // 這裡依需求範例處理：
+                
+                updateMainImage(imgUrl);
+
+                actionBtn.style.display = 'block';
+                actionBtn.onclick = () => {
+                    shareFile(imgUrl, conf.renameTo);
+                };
+            }
+
+            function initDefault(ids, pageMode) {
+                const conf = CONFIG.default;
+                document.getElementById('logo').src = conf.logo;
+                document.getElementById('disclaimer-text').textContent = 
+                    (pageMode === 'download') ? conf.disclaimerDownload : conf.disclaimerShare;
+
+                const idList = ids ? ids.split(',') : ['NNBanner.jpg'];
+                const imageUrls = idList.map(id => `${conf.baseUrl}${id}`);
+                const isMultiple = idList.length > 1;
+
+                // 渲染圖片
                 if (isMultiple) {
-                    desktopBtn.onclick = () => downloadZip(imageUrls, downloadFilenames);
+                    imageWrapper.className = 'multiple-images-grid';
+                    imageUrls.forEach(url => {
+                        const img = document.createElement('img');
+                        img.src = url;
+                        img.style.width = '100%';
+                        img.style.borderRadius = '5px';
+                        imageWrapper.appendChild(img);
+                    });
                 } else {
-                    desktopBtn.onclick = () => {
+                    updateMainImage(imageUrls[0]);
+                }
+
+                // 設定按鈕
+                const btnText = (pageMode === 'download') ? '下載圖片' : '分享／下載圖片';
+                actionBtn.textContent = isMultiple ? `打包${btnText}` : btnText;
+                actionBtn.style.display = 'block';
+
+                actionBtn.onclick = () => {
+                    if (isMobile && navigator.share && !isMultiple) {
+                        shareFile(imageUrls[0], idList[0]);
+                    } else if (isMultiple) {
+                        downloadZip(imageUrls, idList); // 需保留原始檔名
+                    } else {
+                        // 單張下載 fallback
                         const link = document.createElement('a');
                         link.href = imageUrls[0];
-                        link.download = downloadFilenames[0];
+                        link.download = idList[0];
                         link.click();
-                    };
-                }
+                    }
+                };
                 
-                let qrCodeUrl = window.location.href;
-                new QRCode(document.getElementById("qrcode"), { text: qrCodeUrl, width: 180, height: 180 });
+                // Default 模式才顯示 QR Code (如果是電腦版)
+                setupDesktopView(window.location.href);
             }
 
-            // ✨ 3. 根據 pageMode 設定 disclaimer 文字
-            const disclaimerElement = document.getElementById('disclaimer-text');
-            if (pageMode === 'share') {
-                disclaimerElement.textContent = '僅限分享給專業醫療人員之參考。';
-            } else { // download mode
-                disclaimerElement.textContent = '僅供專業醫療人員之參考。';
+            // === 輔助 UI 函式 ===
+
+            function applyTheme(themeClass, conf) {
+                document.body.classList.add(themeClass);
+                document.getElementById('logo').src = conf.logo;
+                
+                if (conf.bgImage) {
+                    document.body.style.backgroundImage = `url('${conf.bgImage}')`;
+                }
+
+                const titleEl = document.getElementById('page-title');
+                titleEl.textContent = conf.title;
+                titleEl.style.display = 'block';
+
+                actionBtn.textContent = conf.btnText;
+                document.getElementById('disclaimer-text').textContent = conf.disclaimer;
+                
+                // 新模式下，電腦版也盡量顯示大按鈕，隱藏 QR Code 區域，因為主要透過手機 LIFF 開啟
+                // 但保留 QR Code 以防萬一，但文字不顯示
+            }
+
+            function updateMainImage(url) {
+                // 清空並重繪大圖
+                imageWrapper.innerHTML = '';
+                imageWrapper.className = ''; // 移除 grid class
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = 'main-image';
+                
+                // 錯誤處理
+                img.onerror = () => {
+                    img.style.display = 'none';
+                    imageWrapper.textContent = '圖片載入失敗，請稍後再試。';
+                };
+                
+                imageWrapper.appendChild(img);
+            }
+
+            function setupDesktopView(url) {
+                if (!isMobile) {
+                    const deskDiv = document.getElementById('desktop-extra');
+                    deskDiv.style.display = 'block';
+                    document.getElementById('qr-code-text').innerHTML = '或使用手機掃描 QR Code 開啟';
+                    new QRCode(document.getElementById("qrcode"), { text: url, width: 150, height: 150 });
+                }
             }
         });
     </script>
