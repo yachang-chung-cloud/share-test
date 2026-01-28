@@ -6,19 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        /* 簡單的 Loading 動畫 */
-        body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f8f9fa; }
-        .loader { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+        body { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f8f9fa; font-family: sans-serif;}
+        .loader { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 20px;}
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #msg { color: #666; font-size: 14px; text-align: center; padding: 0 20px;}
     </style>
 </head>
 <body>
     <div class="loader"></div>
+    <div id="msg">資料讀取中...</div>
     <script>
-        // 設定區
+        // === 設定區 ===
         const LIFF_ID = '2004052594-jdwXq4HB'; 
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbw7xQ4j2cLAhIPzegu378Kf-VDQQMTrlwhhrZp69y9q1SiPsUpSKs2IfeaHGP73WzVjxw/exec';
-        const TARGET_PAGE = 'index.html'; // 最終跳轉頁面
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbw7xQ4j2cLAhIPzegu378Kf-VDQQMTrlwhhrZp69y9q1SiPsUpSKs2IfeaHGP73WzVjxw/exec'; // 結尾必須是 /exec
+        const TARGET_PAGE = 'index.html';
 
         async function main() {
             try {
@@ -32,33 +33,62 @@
                 const profile = await liff.getProfile();
                 const uid = profile.userId;
 
-                // 取得目前 URL 的其他參數 (如 campaign_id) 以便保留
+                // 取得原本網址參數
                 const currentParams = new URLSearchParams(window.location.search);
                 
-                // 呼叫 GAS 查詢資料
-                const response = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'getUser', uid: uid })
-                });
-                const data = await response.json();
+                // 呼叫 GAS (使用 text/plain 避免 CORS Preflight)
+                let apiStatus = 'fail';
+                let userData = {};
+
+                try {
+                    const response = await fetch(GAS_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'getUser', uid: uid }),
+                        headers: { "Content-Type": "text/plain;charset=utf-8" } 
+                    });
+                    userData = await response.json();
+                    apiStatus = userData.status;
+                } catch (e) {
+                    console.error('API Error:', e);
+                }
 
                 // 準備跳轉參數
                 currentParams.set('isLiff', 'true');
-                currentParams.set('uid', uid);
+                currentParams.set('uid', uid); // 這裡帶的是 LINE UID
                 
-                if (data.status === 'success') {
-                    if (data.name) currentParams.set('name', data.name);
-                    if (data.email) currentParams.set('email', data.email);
+                if (apiStatus === 'success') {
+                    if (userData.name) currentParams.set('name', userData.name);
+                    if (userData.email) currentParams.set('email', userData.email);
                 }
 
-                // 跳轉
-                window.location.replace(`${TARGET_PAGE}?${currentParams.toString()}`);
+                // 組裝最終網址
+                const finalUrl = `${window.location.origin}${window.location.pathname.replace('liff.html', '')}${TARGET_PAGE}?${currentParams.toString()}`;
+
+                // === 強制使用外部瀏覽器 ===
+                liff.openWindow({
+                    url: finalUrl,
+                    external: true
+                });
+                
+                // 後備方案
+                document.getElementById('msg').innerHTML = '若未自動跳轉，<br>請點擊下方按鈕開啟頁面';
+                const btn = document.createElement('button');
+                btn.innerText = '前往頁面';
+                btn.style.marginTop = '15px';
+                btn.style.padding = '10px 20px';
+                btn.style.background = '#007bff';
+                btn.style.color = 'white';
+                btn.style.border = 'none';
+                btn.style.borderRadius = '5px';
+                btn.onclick = function() {
+                    liff.openWindow({ url: finalUrl, external: true });
+                };
+                document.body.appendChild(btn);
 
             } catch (err) {
                 console.error(err);
-                alert('系統忙碌中，請稍後再試。');
-                // 錯誤時仍嘗試跳轉回首頁，但不帶個資
-                window.location.replace(TARGET_PAGE + window.location.search);
+                document.getElementById('msg').innerText = '發生錯誤，請重新整理';
+                alert('系統忙碌中: ' + err.message);
             }
         }
         main();
