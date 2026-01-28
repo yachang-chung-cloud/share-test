@@ -189,7 +189,7 @@
         body.theme-xenda .button-group button { background: linear-gradient(135deg, #E480BD 0%, #F69DDF 100%); }
         body.theme-xenda .thumb-img.active { border-color: #E480BD; }
         
-        /* 2. NNHCP (包含動態 Campaign) */
+        /* 2. NNHCP (僅在 campaign=nnhcp 時使用) */
         body.theme-nnhcp { color: #011965; }
         body.theme-nnhcp .container { border-top: 4px solid #05AAFF; }
         body.theme-nnhcp #page-title { color: #0133DA; }
@@ -272,21 +272,20 @@
                 disclaimer: '', 
                 renameTo: '我的蛇年精彩瞬間.jpg'
             },
-            // === 動態 Campaign 通用樣板 ===
-            // 當 Campaign ID 不是上述固定值時 (如 '01')，將使用此樣板
+            // === 動態 Campaign 通用樣板 (使用 Default 視覺風格) ===
             dynamic_template: {
-                baseUrl: 'https://storage.googleapis.com/nn-hcp-public/nnhcp/', // 指定圖片路徑為 nnhcp 資料夾
-                logo: 'https://storage.googleapis.com/nn-hcp-public/nnhcp_review_logo.png', // 藍色主題 Logo
-                bgImage: 'https://storage.googleapis.com/nn-hcp-public/nnhcp_review_background.png',
-                title: '分享我的精彩瞬間', // 通用標題
+                baseUrl: 'https://storage.googleapis.com/nn-hcp-public/nnhcp/', // 圖片路徑指向 nnhcp 資料夾
+                logo: 'https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png', // 使用預設藍色 Logo (非 Review Logo)
+                bgImage: '', // 不使用背景圖片 (背景為預設灰色)
+                title: '', // 不預設顯示標題 (或視需要填入)
                 btnText: '分享',
-                disclaimer: '',
-                renameTo: '精彩瞬間.jpg',
-                themeClass: 'theme-nnhcp' // 強制套用藍色樣式
+                disclaimer: '僅限分享給專業醫療人員之參考。', // 與 Default 一致
+                renameTo: 'image.jpg',
+                themeClass: '' // 不套用 nnhcp 主題樣式 (維持 Default)
             }
         };
 
-        // === 1. 工具函式 ===
+        // === 1. 工具函式 (維持不變) ===
         const fetchImageBlob = async (url) => {
             try {
                 const response = await fetch(url);
@@ -337,9 +336,10 @@
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             
-            // 參數解析
+            // 參數解析 (關鍵修正：分辨 uid 與 line_uid)
             const campaign = params.get('campaign'); 
-            const uid = params.get('uid'); 
+            const uid = params.get('uid'); // 這是圖片檔名 (例如 NNHCP_GLP1)
+            const lineUid = params.get('line_uid'); // 這是使用者的 LINE ID
             const idParam = params.get('id');
             const mode = params.get('mode'); 
             const isLiff = params.get('isLiff') === 'true';
@@ -351,21 +351,17 @@
             const imageWrapper = document.getElementById('image-wrapper');
             const thumbContainer = document.getElementById('thumbnail-container');
 
-            // === 2. 初始化畫面邏輯 (Routing) ===
+            // === 2. 初始化畫面邏輯 ===
             
             if (campaign === 'xenda' && uid) {
-                // 情境 1: Xenda 固定專案
                 initXenda(uid);
             } else if (campaign === 'nnhcp' && uid) {
-                // 情境 2: NNHCP 固定專案
                 initNNHCP(uid, CONFIG.nnhcp);
             } else if (campaign && uid) {
-                // 情境 3: 動態 Campaign (如 01, 02)
-                // 使用 dynamic_template 設定，但邏輯同 NNHCP
+                // 動態 Campaign (如 01)：使用 dynamic_template
                 console.log('Using Dynamic Template for:', campaign);
                 initNNHCP(uid, CONFIG.dynamic_template); 
             } else {
-                // 情境 4: 預設 (Grid 模式或 Default Banner)
                 initDefault(idParam, mode);
             }
 
@@ -377,23 +373,17 @@
             function initXenda(uid) {
                 const conf = CONFIG.xenda;
                 applyTheme('theme-xenda', conf);
-
+                // (省略圖片邏輯，同前...)
                 const images = [1, 2, 3, 4].map(num => ({
-                    id: `${num}`,
-                    url: `${conf.baseUrl}${uid}_${num}.jpg`,
-                    suffix: `_${num}.jpg`
+                    id: `${num}`, url: `${conf.baseUrl}${uid}_${num}.jpg`, suffix: `_${num}.jpg`
                 }));
-
                 thumbContainer.style.display = 'grid';
-                
                 let currentImgObj = images[3]; 
-
                 images.forEach(imgObj => {
                     const thumb = document.createElement('img');
                     thumb.src = imgObj.url;
                     thumb.className = 'thumb-img';
                     if (imgObj.id === '4') thumb.classList.add('active'); 
-
                     thumb.onclick = () => {
                         document.querySelectorAll('.thumb-img').forEach(el => el.classList.remove('active'));
                         thumb.classList.add('active');
@@ -402,9 +392,7 @@
                     };
                     thumbContainer.appendChild(thumb);
                 });
-
                 updateMainImage(currentImgObj.url);
-
                 setupActionBtn(conf.btnText, () => {
                     const rename = conf.fileMapping[currentImgObj.suffix] || 'image.jpg';
                     shareFile(currentImgObj.url, rename);
@@ -412,21 +400,22 @@
             }
 
             function initNNHCP(uid, conf) {
-                // 套用主題，若 conf 沒有 themeClass 則預設使用 NNHCP 主題
-                applyTheme(conf.themeClass || 'theme-nnhcp', conf);
+                // 若 dynamic_template 中 themeClass 為空，則不會套用 theme-nnhcp 樣式
+                applyTheme(conf.themeClass || '', conf);
 
-                // 圖片路徑邏輯：baseUrl + UID + .jpg
-                // 對於動態 Campaign，baseUrl 已指向 '.../nnhcp/'
+                // 圖片路徑：baseUrl (nnhcp資料夾) + uid + .jpg
                 const imgUrl = `${conf.baseUrl}${uid}.jpg`; 
                 updateMainImage(imgUrl);
 
-                setupActionBtn(conf.btnText, () => {
+                const btnText = (mode === 'download') ? '下載圖片' : conf.btnText;
+                setupActionBtn(btnText, () => {
                     shareFile(imgUrl, conf.renameTo);
                 });
             }
 
             function initDefault(ids, pageMode) {
                 const conf = CONFIG.default;
+                // 重用預設邏輯...
                 document.getElementById('logo').src = conf.logo;
                 document.getElementById('disclaimer-text').textContent = 
                     (pageMode === 'download') ? conf.disclaimerDownload : conf.disclaimerShare;
@@ -480,7 +469,7 @@
                 // 填入 Email 邏輯
                 if (isLiff && userEmail && userEmail !== 'undefined' && userEmail !== 'null' && userEmail !== '') {
                     emailInput.value = userEmail;
-                    emailInput.disabled = true; // 鎖定
+                    emailInput.disabled = true; 
                 } else {
                     emailInput.value = '';
                     emailInput.disabled = false;
@@ -512,12 +501,12 @@
                     try {
                         const response = await fetch(GAS_API_URL, {
                             method: 'POST',
-                            // 關鍵修正：避免 CORS Preflight 失敗
                             headers: { "Content-Type": "text/plain;charset=utf-8" },
                             body: JSON.stringify({
                                 action: 'sendEDM',
-                                campaignId: campaign, // 傳送 URL 中的 campaign ID (例如 '01')
-                                userId: uid || 'unknown', // 使用 storage uid 供記錄
+                                campaignId: campaign, 
+                                // 關鍵修正：記錄 Log 時，優先使用 lineUid (真實用戶 ID)，若無則使用 storage uid
+                                userId: lineUid || uid || 'unknown', 
                                 email: email,
                                 name: userName || ''
                             })
@@ -551,17 +540,25 @@
             }
 
             function applyTheme(themeClass, conf) {
-                document.body.className = ''; // 重置 class
-                document.body.classList.add(themeClass);
+                document.body.className = ''; 
+                if (themeClass) document.body.classList.add(themeClass);
+                
                 document.getElementById('logo').src = conf.logo;
                 
+                // 若無背景圖，清空背景樣式
                 if (conf.bgImage) {
                     document.body.style.backgroundImage = `url('${conf.bgImage}')`;
+                } else {
+                    document.body.style.backgroundImage = 'none';
                 }
 
                 const titleEl = document.getElementById('page-title');
-                titleEl.textContent = conf.title;
-                titleEl.style.display = 'block';
+                if (conf.title) {
+                    titleEl.textContent = conf.title;
+                    titleEl.style.display = 'block';
+                } else {
+                    titleEl.style.display = 'none';
+                }
                 
                 const disclaimerEl = document.getElementById('disclaimer-text');
                 if (conf.disclaimer) {
@@ -581,12 +578,10 @@
                 
                 img.onerror = () => {
                     img.style.display = 'none';
-                    if (!url.includes('_1.jpg') && !url.includes('_2.jpg')) {
-                         const errorMsg = document.createElement('div');
-                         errorMsg.textContent = '圖片載入失敗，請確認檔案是否存在。';
-                         errorMsg.style.padding = '20px';
-                         imageWrapper.appendChild(errorMsg);
-                    }
+                    const errorMsg = document.createElement('div');
+                    errorMsg.textContent = '圖片載入失敗，請確認檔案是否存在。';
+                    errorMsg.style.padding = '20px';
+                    imageWrapper.appendChild(errorMsg);
                 };
                 imageWrapper.appendChild(img);
             }
