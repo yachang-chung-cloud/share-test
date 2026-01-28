@@ -31,19 +31,19 @@
                 }
 
                 const profile = await liff.getProfile();
-                const uid = profile.userId;
+                const lineUserId = profile.userId; // 這是 LINE 的使用者 ID
 
-                // 取得原本網址參數
+                // 取得原本網址參數 (這裡面包含 uid=NNHCP_GLP1)
                 const currentParams = new URLSearchParams(window.location.search);
                 
-                // 呼叫 GAS (使用 text/plain 避免 CORS Preflight)
+                // 呼叫 GAS 查詢 Email (使用 LINE ID 去查)
                 let apiStatus = 'fail';
                 let userData = {};
 
                 try {
                     const response = await fetch(GAS_URL, {
                         method: 'POST',
-                        body: JSON.stringify({ action: 'getUser', uid: uid }),
+                        body: JSON.stringify({ action: 'getUser', uid: lineUserId }),
                         headers: { "Content-Type": "text/plain;charset=utf-8" } 
                     });
                     userData = await response.json();
@@ -52,9 +52,11 @@
                     console.error('API Error:', e);
                 }
 
-                // 準備跳轉參數
+                // === 關鍵修正 ===
+                // 1. 保留原本的 uid (圖片檔名) 不動
+                // 2. 新增 line_uid 參數來傳遞使用者的 ID
                 currentParams.set('isLiff', 'true');
-                currentParams.set('uid', uid); // 這裡帶的是 LINE UID
+                currentParams.set('line_uid', lineUserId); 
                 
                 if (apiStatus === 'success') {
                     if (userData.name) currentParams.set('name', userData.name);
@@ -64,7 +66,7 @@
                 // 組裝最終網址
                 const finalUrl = `${window.location.origin}${window.location.pathname.replace('liff.html', '')}${TARGET_PAGE}?${currentParams.toString()}`;
 
-                // === 強制使用外部瀏覽器 ===
+                // 強制使用外部瀏覽器
                 liff.openWindow({
                     url: finalUrl,
                     external: true
