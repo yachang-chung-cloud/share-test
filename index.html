@@ -13,7 +13,7 @@
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
             text-align: center; 
-            padding: 10px 20px 20px 20px; /* 上方 padding 減少，讓 logo 貼近頂部 */
+            padding: 10px 20px 20px 20px; 
             margin: 0;
             background-color: #f8f9fa; 
             background-size: cover;
@@ -23,13 +23,12 @@
             color: #333; 
         }
         
-        /* Logo (移出 Container) */
+        /* Logo */
         #logo { 
-            max-width: 160px; /* 略為縮小以節省空間 */
+            max-width: 160px; 
             max-height: 70px; 
             display: block; 
             margin: 0 auto 15px auto; 
-            /* 增加陰影以確保在深色背景上的可讀性 */
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
         }
 
@@ -37,17 +36,16 @@
         .container { 
             max-width: 500px; 
             margin: 0 auto; 
-            /* 透明度調整為 0.85 */
             background-color: rgba(255, 255, 255, 0.85); 
             border-radius: 16px; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
             padding: 20px 20px; 
-            backdrop-filter: blur(5px); /* 增加磨砂玻璃效果 (支援的瀏覽器) */
+            backdrop-filter: blur(5px); 
         }
         
         /* 標題 */
         #page-title { 
-            font-size: 18px; /* 字體微調 */
+            font-size: 18px; 
             font-weight: bold; 
             margin-bottom: 15px; 
             color: #333; 
@@ -86,17 +84,17 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
 
-        /* 主圖顯示優化 (關鍵調整) */
+        /* 主圖顯示優化 */
         .main-image { 
-            width: auto;           /* 寬度自動，保持比例 */
-            max-width: 100%;       /* 不超過容器寬度 */
-            max-height: 45vh;      /* 限制高度為螢幕的 45%，確保按鈕不被擠下去 */
-            object-fit: contain;   /* 確保圖片完整顯示 */
+            width: auto;           
+            max-width: 100%;       
+            max-height: 45vh;      
+            object-fit: contain;   
             border-radius: 8px; 
             display: block; 
         }
         
-        /* 舊版 Grid 模式 (相容舊有功能) */
+        /* 舊版 Grid 模式 */
         .multiple-images-grid { 
             display: grid; 
             grid-template-columns: repeat(2, 1fr); 
@@ -119,6 +117,60 @@
         }
         .button-group button:active { transform: translateY(1px); }
 
+        /* === 新增：EDM 區塊樣式 === */
+        #edm-section {
+            display: none; /* 預設隱藏 */
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px dashed #ccc;
+            text-align: left;
+        }
+        #edm-section label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            display: block;
+            margin-bottom: 8px;
+        }
+        #edm-section input[type="email"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 16px;
+            outline: none;
+            background-color: #fff;
+            transition: border-color 0.2s;
+        }
+        #edm-section input[type="email"]:focus {
+            border-color: #007bff;
+        }
+        #edm-section input[type="email"]:disabled {
+            background-color: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+        #edmBtn {
+            display: block; 
+            width: 100%; 
+            padding: 12px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            border: none; 
+            background-color: #28a745; /* 綠色按鈕區隔 */
+            color: white; 
+            border-radius: 50px; 
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background 0.3s;
+        }
+        #edmBtn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
         /* Desktop View */
         #desktop-extra { display: none; }
         #qrcode { margin: 20px auto; padding: 10px; border: 1px solid #eee; display: inline-block; background-color: white; border-radius: 8px;}
@@ -134,14 +186,14 @@
         body.theme-xenda { color: #333; }
         body.theme-xenda .container { border-top: 4px solid #E480BD; }
         body.theme-xenda #page-title { color: #E480BD; }
-        body.theme-xenda button { background: linear-gradient(135deg, #E480BD 0%, #F69DDF 100%); }
+        body.theme-xenda .button-group button { background: linear-gradient(135deg, #E480BD 0%, #F69DDF 100%); }
         body.theme-xenda .thumb-img.active { border-color: #E480BD; }
         
         /* 2. NNHCP */
         body.theme-nnhcp { color: #011965; }
         body.theme-nnhcp .container { border-top: 4px solid #05AAFF; }
         body.theme-nnhcp #page-title { color: #0133DA; }
-        body.theme-nnhcp button { background: linear-gradient(135deg, #0133DA 0%, #05AAFF 100%); }
+        body.theme-nnhcp .button-group button { background: linear-gradient(135deg, #0133DA 0%, #05AAFF 100%); }
 
     </style>
 </head>
@@ -160,9 +212,16 @@
         <!-- 圖片顯示區 -->
         <div id="image-wrapper"></div>
 
-        <!-- 按鈕區 -->
+        <!-- 分享/下載按鈕區 -->
         <div class="button-group">
             <button id="actionBtn" style="display: none;">分享</button>
+        </div>
+
+        <!-- 新增：EDM 發送區塊 -->
+        <div id="edm-section">
+            <label for="user-email">接收活動資訊 (E-mail)</label>
+            <input type="email" id="user-email" placeholder="請輸入您的 E-mail">
+            <button id="edmBtn">我想收到 EDM</button>
         </div>
         
         <!-- Desktop View 提示 -->
@@ -177,7 +236,11 @@
     </div>
 
     <script>
-        // === 設定檔 ===
+        // === 0. 設定檔與全域變數 ===
+        
+        // 【請填寫您的 Apps Script 部署網址】
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw7xQ4j2cLAhIPzegu378Kf-VDQQMTrlwhhrZp69y9q1SiPsUpSKs2IfeaHGP73WzVjxw/exec';
+
         const CONFIG = {
             default: {
                 baseUrl: 'https://storage.googleapis.com/nn-hcp-public/',
@@ -211,7 +274,7 @@
             }
         };
 
-        // === 工具函式 ===
+        // === 1. 工具函式 ===
         const fetchImageBlob = async (url) => {
             try {
                 const response = await fetch(url);
@@ -262,17 +325,25 @@
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             
+            // 原有參數
             const campaign = params.get('campaign'); 
             const uid = params.get('uid'); 
             const idParam = params.get('id');
             const mode = params.get('mode'); 
             
+            // 新增參數 (由 LIFF 轉址帶入)
+            const isLiff = params.get('isLiff') === 'true';
+            const userEmail = params.get('email');
+            const userName = params.get('name');
+
             const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
             const actionBtn = document.getElementById('actionBtn');
             const imageWrapper = document.getElementById('image-wrapper');
             const thumbContainer = document.getElementById('thumbnail-container');
 
-            // === 1. 初始化邏輯 ===
+            // === 2. 初始化畫面邏輯 ===
+            
+            // 根據 Campaign 類型載入對應視圖
             if (campaign === 'xenda' && uid) {
                 initXenda(uid);
             } else if (campaign === 'nnhcp' && uid) {
@@ -281,7 +352,10 @@
                 initDefault(idParam, mode);
             }
 
-            // === 2. 各模式初始化函式 ===
+            // 執行 EDM 功能初始化
+            initEDMFeature();
+
+            // === 3. 各模式初始化函式 ===
 
             function initXenda(uid) {
                 const conf = CONFIG.xenda;
@@ -326,7 +400,6 @@
                 applyTheme('theme-nnhcp', conf);
 
                 const imgUrl = `${conf.baseUrl}${uid}.jpg`; 
-                
                 updateMainImage(imgUrl);
 
                 actionBtn.style.display = 'block';
@@ -350,7 +423,6 @@
                     imageUrls.forEach(url => {
                         const img = document.createElement('img');
                         img.src = url;
-                        // 移除 style 屬性，改用 CSS 控制
                         imageWrapper.appendChild(img);
                     });
                 } else {
@@ -377,7 +449,99 @@
                 setupDesktopView(window.location.href);
             }
 
-            // === 輔助函式 ===
+            // === 4. 新增：EDM 功能邏輯 ===
+
+            function initEDMFeature() {
+                // 如果沒有 Campaign 參數，視為一般下載頁，不顯示 EDM 功能
+                if (!campaign) return; 
+
+                const edmSection = document.getElementById('edm-section');
+                const emailInput = document.getElementById('user-email');
+                const edmBtn = document.getElementById('edmBtn');
+
+                // 顯示 EDM 區塊
+                edmSection.style.display = 'block';
+
+                // 判斷是否由 LIFF 開啟及 Email 帶入邏輯
+                if (isLiff) {
+                    // 若 LIFF 成功抓到 Sheet 中的 Email
+                    if (userEmail && userEmail !== 'undefined' && userEmail !== 'null' && userEmail !== '') {
+                        emailInput.value = userEmail;
+                        emailInput.disabled = true; // 鎖定不可編輯
+                    } else {
+                        // 有 UID 但 Sheet 沒 Email -> 留空，讓用戶自己填
+                        emailInput.value = '';
+                        emailInput.disabled = false;
+                    }
+                } else {
+                    // 非 LIFF 開啟，不自動帶入，保留空白
+                    emailInput.value = '';
+                    emailInput.disabled = false;
+                }
+
+                // 按鈕點擊事件
+                edmBtn.onclick = () => {
+                    const inputVal = emailInput.value.trim();
+                    // 簡單的 Email 格式驗證 regex
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+                    if (!inputVal) {
+                        alert('請輸入 E-mail');
+                        return;
+                    }
+                    if (!emailRegex.test(inputVal)) {
+                        alert('E-mail 格式不正確，請重新確認');
+                        return;
+                    }
+
+                    // 1. 彈窗確認
+                    const confirmSend = confirm(`確認收取？\n\n我們將發送 EDM 至：${inputVal}`);
+                    if (confirmSend) {
+                        sendEdmRequest(inputVal);
+                    }
+                };
+
+                // 發送請求給 GAS
+                async function sendEdmRequest(email) {
+                    // UI 鎖定防止重複點擊
+                    edmBtn.disabled = true;
+                    const originalText = edmBtn.textContent;
+                    edmBtn.textContent = '發送中...';
+
+                    try {
+                        const response = await fetch(GAS_API_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'sendEDM',
+                                campaignId: campaign, // 將 URL 中的 campaign 參數傳給 GAS
+                                userId: uid || 'unknown',
+                                email: email,
+                                name: userName || '' // 有帶名字就傳，沒有就傳空字串
+                            })
+                        });
+                        
+                        const resData = await response.json();
+                        
+                        if (resData.status === 'success') {
+                            // 2. 成功後顯示彈窗並更新 UI
+                            alert('EDM 發送中，請至您的信箱收取，若收信夾未看到信箱請確認您的垃圾信件夾。');
+                            edmBtn.textContent = 'EDM 已發送';
+                            // 保持按鈕為 disabled 且反灰 (CSS 已設定)
+                        } else {
+                            throw new Error(resData.message || 'Unknown error');
+                        }
+
+                    } catch (e) {
+                        console.error('Send EDM Error:', e);
+                        alert('發送失敗，請稍後再試或聯繫管理員。');
+                        // 失敗則恢復按鈕狀態，允許重試
+                        edmBtn.disabled = false;
+                        edmBtn.textContent = originalText;
+                    }
+                }
+            }
+
+            // === 5. 輔助函式 ===
 
             function applyTheme(themeClass, conf) {
                 document.body.classList.add(themeClass);
