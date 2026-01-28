@@ -238,8 +238,8 @@
     <script>
         // === 0. 設定檔與全域變數 ===
         
-        // 【請確認此網址結尾為 /exec】
-        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw7xQ4j2cLAhIPzegu378Kf-VDQQMTrlwhhrZp69y9q1SiPsUpSKs2IfeaHGP73WzVjxw/exec';
+        // 【請填入您最新部署的 GAS Web App URL (結尾為 /exec)】
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzFnN7ISv9pO_2X7xCjDPOWC9O1RqU6GdRVMF7ozv_RJFaBji4uG7omAqdjvlt0VXk08A/exec';
 
         const CONFIG = {
             default: {
@@ -272,20 +272,21 @@
                 disclaimer: '', 
                 renameTo: '我的蛇年精彩瞬間.jpg'
             },
-            // === 動態 Campaign 通用樣板 (使用 Default 視覺風格) ===
+            // === 動態 Campaign 通用樣板 (例如 campaign=01) ===
+            // 使用 nnhcp 資料夾路徑，但保持預設(Default)的視覺風格(無背景、藍色Logo)
             dynamic_template: {
-                baseUrl: 'https://storage.googleapis.com/nn-hcp-public/nnhcp/', // 圖片路徑指向 nnhcp 資料夾
-                logo: 'https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png', // 使用預設藍色 Logo (非 Review Logo)
-                bgImage: '', // 不使用背景圖片 (背景為預設灰色)
-                title: '', // 不預設顯示標題 (或視需要填入)
+                baseUrl: 'https://storage.googleapis.com/nn-hcp-public/nnhcp/', 
+                logo: 'https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png',
+                bgImage: '', 
+                title: '', // 不預設標題，可留空
                 btnText: '分享',
-                disclaimer: '僅限分享給專業醫療人員之參考。', // 與 Default 一致
+                disclaimer: '僅限分享給專業醫療人員之參考。', 
                 renameTo: 'image.jpg',
-                themeClass: '' // 不套用 nnhcp 主題樣式 (維持 Default)
+                themeClass: '' // 不套用 theme-nnhcp 樣式，維持白色簡潔風格
             }
         };
 
-        // === 1. 工具函式 (維持不變) ===
+        // === 1. 工具函式 ===
         const fetchImageBlob = async (url) => {
             try {
                 const response = await fetch(url);
@@ -336,11 +337,14 @@
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             
-            // 參數解析 (關鍵修正：分辨 uid 與 line_uid)
+            // === 2. 參數解析與區分 ===
+            // campaign: 活動代碼
+            // imgId: 圖片檔名 (來自 url 的 id 參數，若無則嘗試取 uid)
+            // lineUid: 使用者 LINE ID (來自 url 的 line_uid 參數)
             const campaign = params.get('campaign'); 
-            const uid = params.get('uid'); // 這是圖片檔名 (例如 NNHCP_GLP1)
-            const lineUid = params.get('line_uid'); // 這是使用者的 LINE ID
-            const idParam = params.get('id');
+            const imgId = params.get('id') || params.get('uid'); 
+            const lineUid = params.get('line_uid');
+            
             const mode = params.get('mode'); 
             const isLiff = params.get('isLiff') === 'true';
             const userEmail = params.get('email');
@@ -351,39 +355,52 @@
             const imageWrapper = document.getElementById('image-wrapper');
             const thumbContainer = document.getElementById('thumbnail-container');
 
-            // === 2. 初始化畫面邏輯 ===
+            // === 3. 初始化畫面邏輯 (Routing) ===
             
-            if (campaign === 'xenda' && uid) {
-                initXenda(uid);
-            } else if (campaign === 'nnhcp' && uid) {
-                initNNHCP(uid, CONFIG.nnhcp);
-            } else if (campaign && uid) {
-                // 動態 Campaign (如 01)：使用 dynamic_template
+            // 情境 1: Xenda 固定專案
+            if (campaign === 'xenda' && imgId) {
+                initXenda(imgId);
+            } 
+            // 情境 2: NNHCP 固定專案
+            else if (campaign === 'nnhcp' && imgId) {
+                initNNHCP(imgId, CONFIG.nnhcp);
+            } 
+            // 情境 3: 動態 Campaign (如 01, 02) -> 使用 dynamic_template
+            else if (campaign && imgId) {
                 console.log('Using Dynamic Template for:', campaign);
-                initNNHCP(uid, CONFIG.dynamic_template); 
-            } else {
-                initDefault(idParam, mode);
+                initNNHCP(imgId, CONFIG.dynamic_template); 
+            } 
+            // 情境 4: 預設模式 (Default)
+            else {
+                initDefault(params.get('id'), mode);
             }
 
             // 初始化 EDM 功能
             initEDMFeature();
 
-            // === 3. 各模式詳細實作 ===
+            // === 4. 各模式實作函式 ===
 
-            function initXenda(uid) {
+            function initXenda(imageId) {
                 const conf = CONFIG.xenda;
                 applyTheme('theme-xenda', conf);
-                // (省略圖片邏輯，同前...)
+
+                // Xenda 邏輯：根據 ID 判斷是否有 4 張圖
                 const images = [1, 2, 3, 4].map(num => ({
-                    id: `${num}`, url: `${conf.baseUrl}${uid}_${num}.jpg`, suffix: `_${num}.jpg`
+                    id: `${num}`,
+                    url: `${conf.baseUrl}${imageId}_${num}.jpg`,
+                    suffix: `_${num}.jpg`
                 }));
+
                 thumbContainer.style.display = 'grid';
-                let currentImgObj = images[3]; 
+                
+                let currentImgObj = images[3]; // 預設顯示第4張
+
                 images.forEach(imgObj => {
                     const thumb = document.createElement('img');
                     thumb.src = imgObj.url;
                     thumb.className = 'thumb-img';
                     if (imgObj.id === '4') thumb.classList.add('active'); 
+
                     thumb.onclick = () => {
                         document.querySelectorAll('.thumb-img').forEach(el => el.classList.remove('active'));
                         thumb.classList.add('active');
@@ -392,22 +409,26 @@
                     };
                     thumbContainer.appendChild(thumb);
                 });
+
                 updateMainImage(currentImgObj.url);
+
                 setupActionBtn(conf.btnText, () => {
                     const rename = conf.fileMapping[currentImgObj.suffix] || 'image.jpg';
                     shareFile(currentImgObj.url, rename);
                 });
             }
 
-            function initNNHCP(uid, conf) {
-                // 若 dynamic_template 中 themeClass 為空，則不會套用 theme-nnhcp 樣式
+            function initNNHCP(imageId, conf) {
+                // 套用主題 (若 themeClass 為空字串則不加 class)
                 applyTheme(conf.themeClass || '', conf);
 
-                // 圖片路徑：baseUrl (nnhcp資料夾) + uid + .jpg
-                const imgUrl = `${conf.baseUrl}${uid}.jpg`; 
+                // 圖片路徑邏輯：baseUrl + imageId + .jpg
+                const imgUrl = `${conf.baseUrl}${imageId}.jpg`; 
                 updateMainImage(imgUrl);
 
+                // 按鈕文字判斷
                 const btnText = (mode === 'download') ? '下載圖片' : conf.btnText;
+                
                 setupActionBtn(btnText, () => {
                     shareFile(imgUrl, conf.renameTo);
                 });
@@ -415,7 +436,6 @@
 
             function initDefault(ids, pageMode) {
                 const conf = CONFIG.default;
-                // 重用預設邏輯...
                 document.getElementById('logo').src = conf.logo;
                 document.getElementById('disclaimer-text').textContent = 
                     (pageMode === 'download') ? conf.disclaimerDownload : conf.disclaimerShare;
@@ -454,10 +474,10 @@
                 setupDesktopView(window.location.href);
             }
 
-            // === 4. EDM 功能邏輯 ===
+            // === 5. EDM 功能邏輯 ===
 
             function initEDMFeature() {
-                // 若無 Campaign 參數，則視為單純圖片下載，不顯示 EDM
+                // 若無 Campaign 參數，不顯示 EDM
                 if (!campaign) return; 
 
                 const edmSection = document.getElementById('edm-section');
@@ -469,7 +489,7 @@
                 // 填入 Email 邏輯
                 if (isLiff && userEmail && userEmail !== 'undefined' && userEmail !== 'null' && userEmail !== '') {
                     emailInput.value = userEmail;
-                    emailInput.disabled = true; 
+                    emailInput.disabled = true; // 鎖定
                 } else {
                     emailInput.value = '';
                     emailInput.disabled = false;
@@ -501,12 +521,13 @@
                     try {
                         const response = await fetch(GAS_API_URL, {
                             method: 'POST',
+                            // 關鍵：設定 Content-Type 為 text/plain 以避免 GAS 跨域問題
                             headers: { "Content-Type": "text/plain;charset=utf-8" },
                             body: JSON.stringify({
                                 action: 'sendEDM',
                                 campaignId: campaign, 
-                                // 關鍵修正：記錄 Log 時，優先使用 lineUid (真實用戶 ID)，若無則使用 storage uid
-                                userId: lineUid || uid || 'unknown', 
+                                // 優先使用 lineUid 記錄，若無則回退到 imgId 或 'unknown'
+                                userId: lineUid || imgId || 'unknown', 
                                 email: email,
                                 name: userName || ''
                             })
@@ -531,7 +552,7 @@
                 }
             }
 
-            // === 5. 輔助函式 ===
+            // === 6. 輔助函式 ===
 
             function setupActionBtn(text, onClickHandler) {
                 actionBtn.textContent = text;
@@ -540,12 +561,11 @@
             }
 
             function applyTheme(themeClass, conf) {
-                document.body.className = ''; 
+                document.body.className = ''; // 重置 class
                 if (themeClass) document.body.classList.add(themeClass);
                 
                 document.getElementById('logo').src = conf.logo;
                 
-                // 若無背景圖，清空背景樣式
                 if (conf.bgImage) {
                     document.body.style.backgroundImage = `url('${conf.bgImage}')`;
                 } else {
@@ -578,10 +598,12 @@
                 
                 img.onerror = () => {
                     img.style.display = 'none';
-                    const errorMsg = document.createElement('div');
-                    errorMsg.textContent = '圖片載入失敗，請確認檔案是否存在。';
-                    errorMsg.style.padding = '20px';
-                    imageWrapper.appendChild(errorMsg);
+                    if (!url.includes('_1.jpg') && !url.includes('_2.jpg')) {
+                         const errorMsg = document.createElement('div');
+                         errorMsg.textContent = '圖片載入失敗，請確認檔案是否存在。';
+                         errorMsg.style.padding = '20px';
+                         imageWrapper.appendChild(errorMsg);
+                    }
                 };
                 imageWrapper.appendChild(img);
             }
