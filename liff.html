@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Loading...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        /* 簡單的 Loading 動畫 */
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f8f9fa; }
+        .loader { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="loader"></div>
+    <script>
+        // 設定區
+        const LIFF_ID = '2004052594-jdwXq4HB'; 
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbw7xQ4j2cLAhIPzegu378Kf-VDQQMTrlwhhrZp69y9q1SiPsUpSKs2IfeaHGP73WzVjxw/exec';
+        const TARGET_PAGE = 'index.html'; // 最終跳轉頁面
+
+        async function main() {
+            try {
+                await liff.init({ liffId: LIFF_ID });
+                
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
+
+                const profile = await liff.getProfile();
+                const uid = profile.userId;
+
+                // 取得目前 URL 的其他參數 (如 campaign_id) 以便保留
+                const currentParams = new URLSearchParams(window.location.search);
+                
+                // 呼叫 GAS 查詢資料
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getUser', uid: uid })
+                });
+                const data = await response.json();
+
+                // 準備跳轉參數
+                currentParams.set('isLiff', 'true');
+                currentParams.set('uid', uid);
+                
+                if (data.status === 'success') {
+                    if (data.name) currentParams.set('name', data.name);
+                    if (data.email) currentParams.set('email', data.email);
+                }
+
+                // 跳轉
+                window.location.replace(`${TARGET_PAGE}?${currentParams.toString()}`);
+
+            } catch (err) {
+                console.error(err);
+                alert('系統忙碌中，請稍後再試。');
+                // 錯誤時仍嘗試跳轉回首頁，但不帶個資
+                window.location.replace(TARGET_PAGE + window.location.search);
+            }
+        }
+        main();
+    </script>
+</body>
+</html>
