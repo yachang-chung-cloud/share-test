@@ -17,8 +17,9 @@
     <div id="msg">資料讀取中...</div>
     <script>
         // === 設定區 ===
-        const LIFF_ID = '2004052594-jdwXq4HB'; 
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbw7xQ4j2cLAhIPzegu378Kf-VDQQMTrlwhhrZp69y9q1SiPsUpSKs2IfeaHGP73WzVjxw/exec'; // 結尾必須是 /exec
+        const LIFF_ID = '您的_LIFF_ID'; 
+        // 確保這裡是新部署的 GAS 網址 (/exec 結尾)
+        const GAS_URL = '您的_APPS_SCRIPT_WEB_APP_URL'; 
         const TARGET_PAGE = 'index.html';
 
         async function main() {
@@ -31,12 +32,13 @@
                 }
 
                 const profile = await liff.getProfile();
-                const lineUserId = profile.userId; // 這是 LINE 的使用者 ID
+                const lineUserId = profile.userId; // 取得 LINE 真實 UserID
 
-                // 取得原本網址參數 (這裡面包含 uid=NNHCP_GLP1)
+                // 1. 取得原本網址上的參數 (例如 campaign=01, id=NNHCP_GLP1)
                 const currentParams = new URLSearchParams(window.location.search);
                 
-                // 呼叫 GAS 查詢 Email (使用 LINE ID 去查)
+                // 2. 呼叫 GAS 查詢 Email
+                // 注意：傳給 GAS 的 key 還是用 'uid' (因為後端寫死讀取 data.uid)，但值是傳 lineUserId
                 let apiStatus = 'fail';
                 let userData = {};
 
@@ -52,27 +54,28 @@
                     console.error('API Error:', e);
                 }
 
-                // === 關鍵修正 ===
-                // 1. 保留原本的 uid (圖片檔名) 不動
-                // 2. 新增 line_uid 參數來傳遞使用者的 ID
+                // 3. 組裝跳轉參數
                 currentParams.set('isLiff', 'true');
-                currentParams.set('line_uid', lineUserId); 
+                
+                // 關鍵：將 LINE UserID 存為 'line_uid'，避免跟圖片 id/uid 混淆
+                currentParams.set('line_uid', lineUserId);
+                
+                // 如果原本網址有 uid 但您想改用 id，這裡不會去動它，index.html 會自動處理
                 
                 if (apiStatus === 'success') {
                     if (userData.name) currentParams.set('name', userData.name);
                     if (userData.email) currentParams.set('email', userData.email);
                 }
 
-                // 組裝最終網址
+                // 4. 跳轉
                 const finalUrl = `${window.location.origin}${window.location.pathname.replace('liff.html', '')}${TARGET_PAGE}?${currentParams.toString()}`;
 
-                // 強制使用外部瀏覽器
                 liff.openWindow({
                     url: finalUrl,
                     external: true
                 });
                 
-                // 後備方案
+                // 後備按鈕
                 document.getElementById('msg').innerHTML = '若未自動跳轉，<br>請點擊下方按鈕開啟頁面';
                 const btn = document.createElement('button');
                 btn.innerText = '前往頁面';
