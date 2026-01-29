@@ -13,7 +13,7 @@
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
             text-align: center; 
-            padding: 10px 20px 20px 20px; 
+            padding: 10px 20px 20px 20px; /* 上方 padding 減少，讓 logo 貼近頂部 */
             margin: 0;
             background-color: #f8f9fa; 
             background-size: cover;
@@ -23,12 +23,13 @@
             color: #333; 
         }
         
-        /* Logo */
+        /* Logo (移出 Container) */
         #logo { 
-            max-width: 160px; 
+            max-width: 160px; /* 略為縮小以節省空間 */
             max-height: 70px; 
             display: block; 
             margin: 0 auto 15px auto; 
+            /* 增加陰影以確保在深色背景上的可讀性 */
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
         }
 
@@ -36,16 +37,17 @@
         .container { 
             max-width: 500px; 
             margin: 0 auto; 
+            /* 透明度調整為 0.85 */
             background-color: rgba(255, 255, 255, 0.85); 
             border-radius: 16px; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
             padding: 20px 20px; 
-            backdrop-filter: blur(5px); 
+            backdrop-filter: blur(5px); /* 增加磨砂玻璃效果 (支援的瀏覽器) */
         }
         
         /* 標題 */
         #page-title { 
-            font-size: 18px; 
+            font-size: 18px; /* 字體微調 */
             font-weight: bold; 
             margin-bottom: 15px; 
             color: #333; 
@@ -84,17 +86,17 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
 
-        /* 主圖顯示優化 */
+        /* 主圖顯示優化 (關鍵調整) */
         .main-image { 
-            width: auto;           
-            max-width: 100%;       
-            max-height: 45vh;      
-            object-fit: contain;   
+            width: auto;           /* 寬度自動，保持比例 */
+            max-width: 100%;       /* 不超過容器寬度 */
+            max-height: 45vh;      /* 限制高度為螢幕的 45%，確保按鈕不被擠下去 */
+            object-fit: contain;   /* 確保圖片完整顯示 */
             border-radius: 8px; 
             display: block; 
         }
         
-        /* 舊版 Grid 模式 */
+        /* 舊版 Grid 模式 (相容舊有功能) */
         .multiple-images-grid { 
             display: grid; 
             grid-template-columns: repeat(2, 1fr); 
@@ -117,60 +119,6 @@
         }
         .button-group button:active { transform: translateY(1px); }
 
-        /* === EDM 區塊樣式 === */
-        #edm-section {
-            display: none; 
-            margin-top: 25px;
-            padding-top: 15px;
-            border-top: 1px dashed #ccc;
-            text-align: left;
-        }
-        #edm-section label {
-            font-size: 14px;
-            font-weight: bold;
-            color: #555;
-            display: block;
-            margin-bottom: 8px;
-        }
-        #edm-section input[type="email"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            font-size: 16px;
-            outline: none;
-            background-color: #fff;
-            transition: border-color 0.2s;
-        }
-        #edm-section input[type="email"]:focus {
-            border-color: #007bff;
-        }
-        #edm-section input[type="email"]:disabled {
-            background-color: #e9ecef;
-            color: #6c757d;
-            cursor: not-allowed;
-        }
-        #edmBtn {
-            display: block; 
-            width: 100%; 
-            padding: 12px; 
-            font-size: 16px; 
-            cursor: pointer; 
-            border: none; 
-            background-color: #28a745; 
-            color: white; 
-            border-radius: 50px; 
-            font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: background 0.3s;
-        }
-        #edmBtn:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-
         /* Desktop View */
         #desktop-extra { display: none; }
         #qrcode { margin: 20px auto; padding: 10px; border: 1px solid #eee; display: inline-block; background-color: white; border-radius: 8px;}
@@ -186,20 +134,20 @@
         body.theme-xenda { color: #333; }
         body.theme-xenda .container { border-top: 4px solid #E480BD; }
         body.theme-xenda #page-title { color: #E480BD; }
-        body.theme-xenda .button-group button { background: linear-gradient(135deg, #E480BD 0%, #F69DDF 100%); }
+        body.theme-xenda button { background: linear-gradient(135deg, #E480BD 0%, #F69DDF 100%); }
         body.theme-xenda .thumb-img.active { border-color: #E480BD; }
         
-        /* 2. NNHCP (僅在 campaign=nnhcp 時使用) */
+        /* 2. NNHCP */
         body.theme-nnhcp { color: #011965; }
         body.theme-nnhcp .container { border-top: 4px solid #05AAFF; }
         body.theme-nnhcp #page-title { color: #0133DA; }
-        body.theme-nnhcp .button-group button { background: linear-gradient(135deg, #0133DA 0%, #05AAFF 100%); }
+        body.theme-nnhcp button { background: linear-gradient(135deg, #0133DA 0%, #05AAFF 100%); }
 
     </style>
 </head>
 <body>
 
-    <!-- Logo -->
+    <!-- Logo 移出 Container -->
     <img id="logo" src="https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png" alt="Logo">
 
     <div class="container">
@@ -212,16 +160,9 @@
         <!-- 圖片顯示區 -->
         <div id="image-wrapper"></div>
 
-        <!-- 分享/下載按鈕區 -->
+        <!-- 按鈕區 -->
         <div class="button-group">
             <button id="actionBtn" style="display: none;">分享</button>
-        </div>
-
-        <!-- EDM 發送區塊 -->
-        <div id="edm-section">
-            <label for="user-email">接收活動資訊 (E-mail)</label>
-            <input type="email" id="user-email" placeholder="請輸入您的 E-mail">
-            <button id="edmBtn">我想收到 EDM</button>
         </div>
         
         <!-- Desktop View 提示 -->
@@ -236,11 +177,7 @@
     </div>
 
     <script>
-        // === 0. 設定檔與全域變數 ===
-        
-        // 【請填入您最新部署的 GAS Web App URL (結尾為 /exec)】
-        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzFnN7ISv9pO_2X7xCjDPOWC9O1RqU6GdRVMF7ozv_RJFaBji4uG7omAqdjvlt0VXk08A/exec';
-
+        // === 設定檔 ===
         const CONFIG = {
             default: {
                 baseUrl: 'https://storage.googleapis.com/nn-hcp-public/',
@@ -270,28 +207,11 @@
                 title: '分享我的蛇年精彩瞬間',
                 btnText: '分享',
                 disclaimer: '', 
-                renameTo: '我的蛇年精彩瞬間.jpg',
-                autoExt: true // NNHCP 模式下，自動補上 .jpg
-            },
-            // === 動態 Campaign 通用樣板 (例如 campaign=01) ===
-            dynamic_template: {
-                // 修正：路徑改為根目錄 (與您 Default 模式一致，解決 NNHCP_GLP1 抓不到的問題)
-                baseUrl: 'https://storage.googleapis.com/nn-hcp-public/', 
-                
-                logo: 'https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png',
-                bgImage: '', 
-                title: '', // 不預設標題，可留空
-                btnText: '分享',
-                disclaimer: '僅限分享給專業醫療人員之參考。', 
-                renameTo: 'image.jpg',
-                themeClass: '', // 不套用 theme-nnhcp 樣式，維持白色簡潔風格
-                
-                // 修正：不自動加副檔名 (讓 ID 保持原樣 NNHCP_GLP1)
-                autoExt: false 
+                renameTo: '我的蛇年精彩瞬間.jpg'
             }
         };
 
-        // === 1. 工具函式 ===
+        // === 工具函式 ===
         const fetchImageBlob = async (url) => {
             try {
                 const response = await fetch(url);
@@ -342,63 +262,40 @@
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             
-            // === 2. 參數解析與區分 ===
-            // campaign: 活動代碼
-            // imgId: 圖片檔名 (來自 url 的 id 參數，若無則嘗試取 uid)
-            // lineUid: 使用者 LINE ID (來自 url 的 line_uid 參數)
             const campaign = params.get('campaign'); 
-            const imgId = params.get('id') || params.get('uid'); 
-            const lineUid = params.get('line_uid');
-            
+            const uid = params.get('uid'); 
+            const idParam = params.get('id');
             const mode = params.get('mode'); 
-            const isLiff = params.get('isLiff') === 'true';
-            const userEmail = params.get('email');
-            const userName = params.get('name');
-            const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
             
+            const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
             const actionBtn = document.getElementById('actionBtn');
             const imageWrapper = document.getElementById('image-wrapper');
             const thumbContainer = document.getElementById('thumbnail-container');
 
-            // === 3. 初始化畫面邏輯 (Routing) ===
-            
-            // 情境 1: Xenda 固定專案
-            if (campaign === 'xenda' && (imgId || params.get('uid'))) {
-                initXenda(imgId || params.get('uid'));
-            } 
-            // 情境 2: NNHCP 固定專案
-            else if (campaign === 'nnhcp' && imgId) {
-                initNNHCP(imgId, CONFIG.nnhcp);
-            } 
-            // 情境 3: 動態 Campaign (如 01, 02) -> 使用 dynamic_template
-            else if (campaign && imgId) {
-                console.log('Using Dynamic Template for:', campaign);
-                initNNHCP(imgId, CONFIG.dynamic_template); 
-            } 
-            // 情境 4: 預設模式 (Default)
-            else {
-                initDefault(imgId, mode);
+            // === 1. 初始化邏輯 ===
+            if (campaign === 'xenda' && uid) {
+                initXenda(uid);
+            } else if (campaign === 'nnhcp' && uid) {
+                initNNHCP(uid);
+            } else {
+                initDefault(idParam, mode);
             }
 
-            // 初始化 EDM 功能
-            initEDMFeature();
+            // === 2. 各模式初始化函式 ===
 
-            // === 4. 各模式實作函式 ===
-
-            function initXenda(imageId) {
+            function initXenda(uid) {
                 const conf = CONFIG.xenda;
                 applyTheme('theme-xenda', conf);
 
-                // Xenda 邏輯：根據 ID 判斷是否有 4 張圖
                 const images = [1, 2, 3, 4].map(num => ({
                     id: `${num}`,
-                    url: `${conf.baseUrl}${imageId}_${num}.jpg`,
+                    url: `${conf.baseUrl}${uid}_${num}.jpg`,
                     suffix: `_${num}.jpg`
                 }));
 
                 thumbContainer.style.display = 'grid';
                 
-                let currentImgObj = images[3]; // 預設顯示第4張
+                let currentImgObj = images[3]; 
 
                 images.forEach(imgObj => {
                     const thumb = document.createElement('img');
@@ -417,33 +314,25 @@
 
                 updateMainImage(currentImgObj.url);
 
-                setupActionBtn(conf.btnText, () => {
+                actionBtn.style.display = 'block';
+                actionBtn.onclick = () => {
                     const rename = conf.fileMapping[currentImgObj.suffix] || 'image.jpg';
                     shareFile(currentImgObj.url, rename);
-                });
+                };
             }
 
-            function initNNHCP(imageId, conf) {
-                // 套用主題 (若 themeClass 為空字串則不加 class)
-                applyTheme(conf.themeClass || '', conf);
+            function initNNHCP(uid) {
+                const conf = CONFIG.nnhcp;
+                applyTheme('theme-nnhcp', conf);
 
-                // === 關鍵修正：圖片路徑組裝 ===
-                // 如果 config 設定要自動加 .jpg (如 nnhcp 模式)，則加；
-                // 否則直接使用 ID (如 dynamic 模式，適應您的 NNHCP_GLP1 檔案)
-                let finalName = imageId;
-                if (conf.autoExt) {
-                     finalName = imageId + '.jpg';
-                }
-                const imgUrl = `${conf.baseUrl}${finalName}`; 
+                const imgUrl = `${conf.baseUrl}${uid}.jpg`; 
                 
                 updateMainImage(imgUrl);
 
-                // 按鈕文字判斷
-                const btnText = (mode === 'download') ? '下載圖片' : conf.btnText;
-                
-                setupActionBtn(btnText, () => {
+                actionBtn.style.display = 'block';
+                actionBtn.onclick = () => {
                     shareFile(imgUrl, conf.renameTo);
-                });
+                };
             }
 
             function initDefault(ids, pageMode) {
@@ -461,6 +350,7 @@
                     imageUrls.forEach(url => {
                         const img = document.createElement('img');
                         img.src = url;
+                        // 移除 style 屬性，改用 CSS 控制
                         imageWrapper.appendChild(img);
                     });
                 } else {
@@ -468,9 +358,10 @@
                 }
 
                 const btnText = (pageMode === 'download') ? '下載圖片' : '分享／下載圖片';
-                const displayText = isMultiple ? `打包${btnText}` : btnText;
+                actionBtn.textContent = isMultiple ? `打包${btnText}` : btnText;
+                actionBtn.style.display = 'block';
 
-                setupActionBtn(displayText, () => {
+                actionBtn.onclick = () => {
                     if (isMobile && navigator.share && !isMultiple) {
                         shareFile(imageUrls[0], idList[0]);
                     } else if (isMultiple) {
@@ -481,121 +372,30 @@
                         link.download = idList[0];
                         link.click();
                     }
-                });
+                };
                 
                 setupDesktopView(window.location.href);
             }
 
-            // === 5. EDM 功能邏輯 ===
-
-            function initEDMFeature() {
-                // 若無 Campaign 參數，不顯示 EDM
-                if (!campaign) return; 
-
-                const edmSection = document.getElementById('edm-section');
-                const emailInput = document.getElementById('user-email');
-                const edmBtn = document.getElementById('edmBtn');
-
-                edmSection.style.display = 'block';
-
-                // 填入 Email 邏輯
-                if (isLiff && userEmail && userEmail !== 'undefined' && userEmail !== 'null' && userEmail !== '') {
-                    emailInput.value = userEmail;
-                    emailInput.disabled = true; // 鎖定
-                } else {
-                    emailInput.value = '';
-                    emailInput.disabled = false;
-                }
-
-                edmBtn.onclick = () => {
-                    const inputVal = emailInput.value.trim();
-                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-                    if (!inputVal) {
-                        alert('請輸入 E-mail');
-                        return;
-                    }
-                    if (!emailRegex.test(inputVal)) {
-                        alert('E-mail 格式不正確');
-                        return;
-                    }
-
-                    const confirmSend = confirm(`確認收取？\n\n我們將發送 EDM 至：${inputVal}`);
-                    if (confirmSend) {
-                        sendEdmRequest(inputVal);
-                    }
-                };
-
-                async function sendEdmRequest(email) {
-                    edmBtn.disabled = true;
-                    edmBtn.textContent = '發送中...';
-
-                    try {
-                        const response = await fetch(GAS_API_URL, {
-                            method: 'POST',
-                            // 關鍵：設定 Content-Type 為 text/plain 以避免 GAS 跨域問題
-                            headers: { "Content-Type": "text/plain;charset=utf-8" },
-                            body: JSON.stringify({
-                                action: 'sendEDM',
-                                campaignId: campaign, 
-                                // 優先使用 lineUid 記錄，若無則回退到 imgId 或 'unknown'
-                                userId: lineUid || imgId || 'unknown', 
-                                email: email,
-                                name: userName || ''
-                            })
-                        });
-                        
-                        const resData = await response.json();
-                        
-                        if (resData.status === 'success') {
-                            alert('EDM 發送中，請至您的信箱收取，若收信夾未看到信箱請確認您的垃圾信件夾。');
-                            edmBtn.textContent = 'EDM 已發送';
-                            edmBtn.style.backgroundColor = '#6c757d'; 
-                        } else {
-                            throw new Error(resData.message || 'Unknown error');
-                        }
-
-                    } catch (e) {
-                        console.error('EDM Error:', e);
-                        alert('發送失敗，請稍後再試。');
-                        edmBtn.disabled = false;
-                        edmBtn.textContent = '我想收到 EDM';
-                    }
-                }
-            }
-
-            // === 6. 輔助函式 ===
-
-            function setupActionBtn(text, onClickHandler) {
-                actionBtn.textContent = text;
-                actionBtn.style.display = 'block';
-                actionBtn.onclick = onClickHandler;
-            }
+            // === 輔助函式 ===
 
             function applyTheme(themeClass, conf) {
-                document.body.className = ''; // 重置 class
-                if (themeClass) document.body.classList.add(themeClass);
-                
+                document.body.classList.add(themeClass);
                 document.getElementById('logo').src = conf.logo;
                 
                 if (conf.bgImage) {
                     document.body.style.backgroundImage = `url('${conf.bgImage}')`;
-                } else {
-                    document.body.style.backgroundImage = 'none';
                 }
 
                 const titleEl = document.getElementById('page-title');
-                if (conf.title) {
-                    titleEl.textContent = conf.title;
-                    titleEl.style.display = 'block';
-                } else {
-                    titleEl.style.display = 'none';
-                }
+                titleEl.textContent = conf.title;
+                titleEl.style.display = 'block';
+
+                actionBtn.textContent = conf.btnText;
                 
                 const disclaimerEl = document.getElementById('disclaimer-text');
                 if (conf.disclaimer) {
                     disclaimerEl.textContent = conf.disclaimer;
-                    disclaimerEl.style.display = 'block';
                 } else {
                     disclaimerEl.style.display = 'none';
                 }
