@@ -8,28 +8,28 @@
     <style>
         body {
             display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;
-            background-color: #f8f9fa; font-family: sans-serif; flex-direction: column;
+            background-color: #f8f9fa; font-family: sans-serif; flex-direction: column; text-align: center;
         }
         .spinner {
             border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%;
             width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        p { color: #666; font-size: 14px; }
+        p { color: #666; font-size: 14px; padding: 0 20px; }
     </style>
 </head>
 <body>
     <div class="spinner"></div>
-    <p>正在跳轉至外部瀏覽器...</p>
+    <p id="status-text">資料確認中...</p>
 
     <script>
         // === 設定區 ===
-        // 請填入您的 LIFF ID
-        const LIFF_ID = '2004052594-jdwXq4HB'; 
-        // 請填入第一步部署的 GAS Web App URL
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxyf_TSLu5fA-zF9yew6wkdb1O5maBGlicBbczUrdjVIMnMOIPYuzT4tZtW0uj8eJmk_Q/exec'; 
+        const LIFF_ID = '2004052594-jdwXq4HB'; // 您的 LIFF ID
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbzrOcWRzwgwVJrWnNWn0XwciJ-xzYMz2re08WVkLSxxQ2_94gfWjAgnm-OQXIS_rBORmw/exec'; // 您的 Apps Script URL
 
         async function main() {
+            const statusText = document.getElementById('status-text');
+
             try {
                 await liff.init({ liffId: LIFF_ID });
                 
@@ -41,34 +41,35 @@
                 const profile = await liff.getProfile();
                 const uid = profile.userId;
 
-                // 取得網址參數中的 pushId (例如: liff.html?pushId=123)
                 const urlParams = new URLSearchParams(window.location.search);
                 const pushId = urlParams.get('pushId');
 
                 if (!pushId) {
-                    alert('參數錯誤：缺少 Push ID');
+                    statusText.innerText = '錯誤：缺少 Push ID 參數。';
                     return;
                 }
+                
+                statusText.innerText = '正在準備您的專屬頁面...';
 
-                // 組裝 GAS 查詢網址
-                // GAS 會執行資料查詢後，Redirect 到 index.html
-                const redirectUrl = `${GAS_URL}?action=redirect_user&uid=${encodeURIComponent(uid)}&pushId=${encodeURIComponent(pushId)}`;
+                // 步驟 1: 在背景發送請求給 GAS
+                const apiUrl = `${GAS_URL}?action=get_redirect_url&uid=${uid}&pushId=${pushId}`;
+                const response = await fetch(apiUrl);
+                const data = await response.json();
 
-                // === 關鍵 ===
-                // 使用 external: true 強制開啟外部瀏覽器 (Safari/Chrome)
-                // 這樣下載功能才不會被 LINE 內建瀏覽器擋住
-                liff.openWindow({
-                    url: redirectUrl,
-                    external: true
-                });
-
-                // 關閉 LIFF 視窗 (可選，讓體驗更順暢)
-                // liff.closeWindow(); 
+                if (data.status === 'success' && data.finalUrl) {
+                    // 步驟 2: 拿到 GAS 回傳的完整 URL 後, 執行 liff.openWindow
+                    liff.openWindow({
+                        url: data.finalUrl,
+                        external: true
+                    });
+                } else {
+                    statusText.innerText = '無法產生頁面，請稍後再試。';
+                    console.error('Failed to get final URL:', data);
+                }
 
             } catch (err) {
                 console.error('LIFF Error:', err);
-                document.querySelector('p').innerText = '發生錯誤，請重新整理';
-                alert('初始化失敗：' + err.message);
+                statusText.innerText = '初始化失敗，請確認您是在 LINE App 中開啟此頁面。';
             }
         }
 
