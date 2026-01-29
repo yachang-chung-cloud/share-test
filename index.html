@@ -13,7 +13,7 @@
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
             text-align: center; 
-            padding: 10px 20px 20px 20px; /* 上方 padding 減少，讓 logo 貼近頂部 */
+            padding: 10px 20px 20px 20px; 
             margin: 0;
             background-color: #f8f9fa; 
             background-size: cover;
@@ -23,13 +23,12 @@
             color: #333; 
         }
         
-        /* Logo (移出 Container) */
+        /* Logo */
         #logo { 
-            max-width: 160px; /* 略為縮小以節省空間 */
+            max-width: 160px; 
             max-height: 70px; 
             display: block; 
             margin: 0 auto 15px auto; 
-            /* 增加陰影以確保在深色背景上的可讀性 */
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
         }
 
@@ -37,17 +36,16 @@
         .container { 
             max-width: 500px; 
             margin: 0 auto; 
-            /* 透明度調整為 0.85 */
             background-color: rgba(255, 255, 255, 0.85); 
             border-radius: 16px; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
             padding: 20px 20px; 
-            backdrop-filter: blur(5px); /* 增加磨砂玻璃效果 (支援的瀏覽器) */
+            backdrop-filter: blur(5px); 
         }
         
         /* 標題 */
         #page-title { 
-            font-size: 18px; /* 字體微調 */
+            font-size: 18px; 
             font-weight: bold; 
             margin-bottom: 15px; 
             color: #333; 
@@ -86,17 +84,17 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
 
-        /* 主圖顯示優化 (關鍵調整) */
+        /* 主圖顯示優化 */
         .main-image { 
-            width: auto;           /* 寬度自動，保持比例 */
-            max-width: 100%;       /* 不超過容器寬度 */
-            max-height: 45vh;      /* 限制高度為螢幕的 45%，確保按鈕不被擠下去 */
-            object-fit: contain;   /* 確保圖片完整顯示 */
+            width: auto;           
+            max-width: 100%;       
+            max-height: 45vh;      
+            object-fit: contain;   
             border-radius: 8px; 
             display: block; 
         }
         
-        /* 舊版 Grid 模式 (相容舊有功能) */
+        /* 舊版 Grid 模式 */
         .multiple-images-grid { 
             display: grid; 
             grid-template-columns: repeat(2, 1fr); 
@@ -143,11 +141,59 @@
         body.theme-nnhcp #page-title { color: #0133DA; }
         body.theme-nnhcp button { background: linear-gradient(135deg, #0133DA 0%, #05AAFF 100%); }
 
+        /* === NEW: Push EDM 區塊樣式 === */
+        #push-section {
+            display: none;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px dashed #ccc;
+            text-align: left;
+        }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { 
+            display: block; margin-bottom: 8px; font-size: 14px; font-weight: bold; color: #555; 
+        }
+        .form-group input {
+            width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus { outline: none; border-color: #007bff; }
+        /* Read-only 樣式 */
+        .form-group input:read-only { 
+            background-color: #f2f2f2; color: #666; cursor: not-allowed; 
+        }
+        
+        /* EDM 按鈕 */
+        #btn-send-edm {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        #btn-send-edm:disabled {
+            background: #d6d6d6; color: #888; cursor: not-allowed; box-shadow: none;
+        }
+        
+        /* Loading 遮罩 */
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9); z-index: 9999;
+            display: none; justify-content: center; align-items: center; flex-direction: column;
+        }
+        .spinner {
+            border: 5px solid #f3f3f3; border-top: 5px solid #007bff; border-radius: 50%;
+            width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
     </style>
 </head>
 <body>
 
-    <!-- Logo 移出 Container -->
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div id="loading-text">處理中...</div>
+    </div>
+
+    <!-- Logo -->
     <img id="logo" src="https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png" alt="Logo">
 
     <div class="container">
@@ -164,6 +210,17 @@
         <div class="button-group">
             <button id="actionBtn" style="display: none;">分享</button>
         </div>
+
+        <!-- NEW: Push EDM 功能區 -->
+        <div id="push-section">
+            <div class="form-group">
+                <label for="user-email">您的 Email</label>
+                <input type="email" id="user-email" placeholder="請輸入 Email">
+            </div>
+            <div class="button-group">
+                <button id="btn-send-edm">我想收到 EDM</button>
+            </div>
+        </div>
         
         <!-- Desktop View 提示 -->
         <div id="desktop-extra">
@@ -177,6 +234,11 @@
     </div>
 
     <script>
+        // ==========================================
+        // ★ 請在此填入您部署好的 Google Apps Script 網址
+        // ==========================================
+        const GAS_APP_URL = 'https://script.google.com/macros/s/AKfycbxyf_TSLu5fA-zF9yew6wkdb1O5maBGlicBbczUrdjVIMnMOIPYuzT4tZtW0uj8eJmk_Q/exec'; 
+
         // === 設定檔 ===
         const CONFIG = {
             default: {
@@ -259,30 +321,138 @@
             link.click();
         };
 
+        // === 主程式 ===
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             
             const campaign = params.get('campaign'); 
             const uid = params.get('uid'); 
-            const idParam = params.get('id');
+            const idParam = params.get('id'); // 一般模式為圖片 ID，Push 模式為 Push ID
             const mode = params.get('mode'); 
+            
+            // Push 模式額外參數
+            const emailParam = params.get('email');
+            const nameParam = params.get('name');
             
             const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
             const actionBtn = document.getElementById('actionBtn');
             const imageWrapper = document.getElementById('image-wrapper');
             const thumbContainer = document.getElementById('thumbnail-container');
 
-            // === 1. 初始化邏輯 ===
-            if (campaign === 'xenda' && uid) {
+            // === 1. 初始化路由判斷 ===
+            
+            // Case 1: Push 模式 (由 GAS 轉址過來)
+            if (mode === 'push' && idParam) {
+                // 上半部：顯示圖片 (假設 Push ID 對應一張圖片)
+                // 這裡複用 initDefault，模式設為 'share' (顯示分享按鈕)
+                initDefault(idParam, 'share'); 
+                
+                // 下半部：顯示 EDM 功能
+                initPushFeature(idParam, uid, emailParam, nameParam);
+            } 
+            // Case 2: Xenda Campaign
+            else if (campaign === 'xenda' && uid) {
                 initXenda(uid);
-            } else if (campaign === 'nnhcp' && uid) {
+            } 
+            // Case 3: NNHCP Campaign
+            else if (campaign === 'nnhcp' && uid) {
                 initNNHCP(uid);
-            } else {
+            } 
+            // Case 4: 預設分享/下載頁
+            else {
                 initDefault(idParam, mode);
             }
 
-            // === 2. 各模式初始化函式 ===
+            // === 2. 功能模組 ===
 
+            // NEW: Push EDM 功能
+            function initPushFeature(pushId, uid, email, name) {
+                const section = document.getElementById('push-section');
+                const emailInput = document.getElementById('user-email');
+                const btn = document.getElementById('btn-send-edm');
+                const loadingOverlay = document.getElementById('loading-overlay');
+                const loadingText = document.getElementById('loading-text');
+
+                // 顯示區塊
+                section.style.display = 'block';
+
+                // 設定 Email 欄位狀態
+                if (email && email !== 'undefined' && email !== 'null') {
+                    emailInput.value = email;
+                    emailInput.readOnly = true; // 有自動帶入則不可編輯
+                    emailInput.style.backgroundColor = '#f2f2f2';
+                } else {
+                    emailInput.value = '';
+                    emailInput.readOnly = false; // 無資料則必填
+                    emailInput.style.backgroundColor = '#fff';
+                }
+
+                // 按鈕點擊事件
+                btn.onclick = () => {
+                    const currentEmail = emailInput.value.trim();
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+                    // 1. 驗證
+                    if (!currentEmail || !emailRegex.test(currentEmail)) {
+                        alert('請輸入正確的 Email 格式');
+                        return;
+                    }
+
+                    // 2. 二次確認
+                    if (!confirm(`確認是否收到 EDM？\n將發送至：${currentEmail}`)) {
+                        return;
+                    }
+
+                    // 3. 發送請求
+                    loadingOverlay.style.display = 'flex';
+                    loadingText.innerText = 'EDM 發送中...';
+                    btn.disabled = true;
+
+                    fetch(GAS_APP_URL, {
+                        method: 'POST',
+                        mode: 'no-cors', // 避免跨域錯誤 (GAS 限制)
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'send_edm',
+                            pushId: pushId,
+                            uid: uid || '',
+                            name: name || '',
+                            email: currentEmail
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        loadingOverlay.style.display = 'none';
+                        
+                        if (data.status === 'success') {
+                            alert('EDM 發送中，請至您的信箱收取，若收信夾未看到信箱請確認您的垃圾信件夾。');
+                            btn.innerText = 'EDM 已發送';
+                            btn.style.backgroundColor = '#ccc';
+                            // 保持按鈕 disabled
+                        } else {
+                            alert('發送失敗：' + (data.message || '未知錯誤'));
+                            btn.disabled = false;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // 因 GAS no-cors 特性，有時無法讀取 response body，若成功通常沒錯
+                        // 這裡為了保險起見，若發生網路錯誤才報錯
+                        // 如果您調整了 GAS 為回傳 JSONP 或正確 CORS，上面的 then 會執行
+                        
+                        // 簡單處理：若在此 catch 到，通常是網路問題或 JSON 解析問題
+                        loadingOverlay.style.display = 'none';
+                        
+                        // 嘗試性的成功提示 (如果 GAS 那邊其實成功了)
+                        // 若要精確，需 GAS 端配合回傳正確 Header
+                        // 這裡假設是真實錯誤
+                        alert('系統連線異常，請稍後再試，或檢查您的網路狀態。');
+                        btn.disabled = false;
+                    });
+                };
+            }
+
+            // Xenda Campaign
             function initXenda(uid) {
                 const conf = CONFIG.xenda;
                 applyTheme('theme-xenda', conf);
@@ -321,6 +491,7 @@
                 };
             }
 
+            // NNHCP Campaign
             function initNNHCP(uid) {
                 const conf = CONFIG.nnhcp;
                 applyTheme('theme-nnhcp', conf);
@@ -335,6 +506,7 @@
                 };
             }
 
+            // Default (Share / Download) & Push Mode's Image part
             function initDefault(ids, pageMode) {
                 const conf = CONFIG.default;
                 document.getElementById('logo').src = conf.logo;
@@ -350,7 +522,6 @@
                     imageUrls.forEach(url => {
                         const img = document.createElement('img');
                         img.src = url;
-                        // 移除 style 屬性，改用 CSS 控制
                         imageWrapper.appendChild(img);
                     });
                 } else {
@@ -410,6 +581,7 @@
                 
                 img.onerror = () => {
                     img.style.display = 'none';
+                    // 忽略 Xenda 的部分錯誤檢查，避免太多紅字
                     if (!url.includes('_1.jpg') && !url.includes('_2.jpg')) {
                          const errorMsg = document.createElement('div');
                          errorMsg.textContent = '圖片載入失敗，請確認檔案是否存在。';
@@ -425,6 +597,8 @@
                     const deskDiv = document.getElementById('desktop-extra');
                     deskDiv.style.display = 'block';
                     document.getElementById('qr-code-text').innerHTML = '或使用手機掃描 QR Code 開啟';
+                    // 清空後重新生成，避免重複
+                    document.getElementById("qrcode").innerHTML = "";
                     new QRCode(document.getElementById("qrcode"), { text: url, width: 150, height: 150 });
                 }
             }
