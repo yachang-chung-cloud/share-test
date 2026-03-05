@@ -134,6 +134,20 @@
             border-top: 1px dashed #ccc;
             text-align: left;
         }
+
+        /* 新增：Campaign 說明文字樣式 */
+        #push-campaign-text {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            background-color: #f1f8ff;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+            display: none; /* 預設隱藏，有內容才顯示 */
+        }
+
         .form-group { margin-bottom: 15px; }
         .form-group label { 
             display: block; margin-bottom: 8px; font-size: 14px; font-weight: bold; color: #555; 
@@ -212,6 +226,10 @@
 
         <!-- NEW: Push EDM 區塊 -->
         <div id="push-section">
+            
+            <!-- [NEW] 來自 Sheet I欄的文案顯示區 -->
+            <p id="push-campaign-text"></p>
+
             <div class="form-group">
                 <label for="user-email">您的 Email</label>
                 <input type="email" id="user-email" placeholder="讀取中..." readonly>
@@ -348,7 +366,7 @@
             // === 1. 路由判斷 ===
             
             if (source === 'push' && finalUid) {
-                // 情境: Push EDM (顯示圖片 + 訂閱表單)
+                // 情境: Push EDM (顯示圖片 + 訂閱表單 + 說明文字)
                 initDefault(idParam, viewIdParam, mode);
                 initPushFeature(finalUid, pushId);
             } 
@@ -368,6 +386,7 @@
             // --- 修改後的: Push EDM 訂閱功能 ---
             function initPushFeature(uid, pushId) {
                 const section = document.getElementById('push-section');
+                const campaignTextField = document.getElementById('push-campaign-text');
                 const emailInput = document.getElementById('user-email');
                 const nameInput = document.getElementById('user-name');
                 const btn = document.getElementById('btn-send-edm');
@@ -376,55 +395,64 @@
 
                 // 顯示表單區塊
                 section.style.display = 'block';
-
-                // 步驟 1: 自動讀取用戶資料 (使用 GET)
                 loadingOverlay.style.display = 'flex';
-                loadingText.innerText = '讀取用戶資料中...';
+                loadingText.innerText = '資料讀取中...';
 
-                // 組合 GET 請求的 URL
-                const queryUrl = `${GAS_APP_URL}?action=get_user_info&uid=${encodeURIComponent(uid)}`;
-
-                fetch(queryUrl)
-                .then(res => {
-                    if (!res.ok) { throw new Error('Network response was not ok'); }
-                    return res.json();
-                })
-                .then(data => {
-                    console.log("User Data Received:", data);
-                    
-                    if (data.result === 'success' && data.data) {
-                        const userInfo = data.data;
-                        // 填入 Email
-                        if (userInfo.email) {
-                            emailInput.value = userInfo.email;
-                            emailInput.readOnly = true; // 鎖定不讓修改 (可視需求移除)
+                // ==========================================
+                // 動作 A: 抓取用戶資料 (Email/Name)
+                // ==========================================
+                const userFetch = fetch(`${GAS_APP_URL}?action=get_user_info&uid=${encodeURIComponent(uid)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log("User Data:", data);
+                        if (data.result === 'success' && data.data) {
+                            const userInfo = data.data;
+                            if (userInfo.email) {
+                                emailInput.value = userInfo.email;
+                                emailInput.readOnly = true; 
+                            } else {
+                                emailInput.readOnly = false;
+                                emailInput.placeholder = "無法取得 Email，請手動輸入";
+                            }
+                            if (userInfo.name) nameInput.value = userInfo.name;
                         } else {
                             emailInput.readOnly = false;
-                            emailInput.placeholder = "無法取得 Email，請手動輸入";
+                            emailInput.placeholder = "請輸入 Email";
                         }
-                        
-                        // 填入姓名 (存入 hidden 欄位)
-                        if (userInfo.name) {
-                            nameInput.value = userInfo.name;
-                        }
-                    } else {
-                        // 查無資料的情況
-                        console.warn('查無此 UID 資料');
+                    })
+                    .catch(err => {
+                        console.error('User fetch error:', err);
                         emailInput.readOnly = false;
-                        emailInput.placeholder = "請輸入 Email";
-                    }
-                })
-                .catch(err => {
-                    console.error('Fetch user info error:', err);
-                    emailInput.value = '';
-                    emailInput.readOnly = false;
-                    emailInput.placeholder = "請輸入 Email";
-                })
-                .finally(() => {
+                    });
+
+                // ==========================================
+                // 動作 B: [NEW] 抓取 Campaign 說明文案 (I欄)
+                // ==========================================
+                const campaignFetch = fetch(`${GAS_APP_URL}?action=get_campaign_info&pushId=${encodeURIComponent(pushId)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log("Campaign Data:", data);
+                        if (data.result === 'success' && data.data && data.data.content) {
+                            // 有內容才顯示
+                            campaignTextField.innerText = data.data.content;
+                            campaignTextField.style.display = 'block';
+                        } else {
+                            campaignTextField.style.display = 'none';
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Campaign fetch error:', err);
+                        campaignTextField.style.display = 'none';
+                    });
+
+                // 等待兩者都完成後才關閉 Loading
+                Promise.all([userFetch, campaignFetch]).finally(() => {
                     loadingOverlay.style.display = 'none';
                 });
 
-                // 步驟 2: 發送訂閱請求 (維持 POST + no-cors)
+                // ==========================================
+                // 動作 C: 發送訂閱請求
+                // ==========================================
                 btn.onclick = () => {
                     const currentEmail = emailInput.value.trim();
                     const currentName = nameInput.value || '';
@@ -440,7 +468,7 @@
                     loadingText.innerText = '訂閱處理中...';
                     btn.disabled = true;
 
-                    // 發送資料 (寫入動作維持 POST)
+                    // 發送資料
                     fetch(GAS_APP_URL, {
                         method: 'POST',
                         mode: 'no-cors', 
