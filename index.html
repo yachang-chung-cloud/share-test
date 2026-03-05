@@ -145,7 +145,7 @@
         }
         .form-group input:focus { outline: none; border-color: #007bff; background-color: #fff;}
         .form-group input:read-only { 
-            background-color: #e9ecef; color: #666; cursor: default;
+            background-color: #e9ecef; color: #666; cursor: not-allowed;
         }
         
         #btn-send-edm {
@@ -237,8 +237,8 @@
 
     <script>
         // === Google Apps Script URL ===
-        // 請確保此 Script 已部署為 Web App，且設定為 "Anyone" (或 "Anyone with Google Account" 視您的權限策略而定)
-        const GAS_APP_URL = 'https://script.google.com/macros/s/AKfycbxyf_TSLu5fA-zF9yew6wkdb1O5maBGlicBbczUrdjVIMnMOIPYuzT4tZtW0uj8eJmk_Q/exec'; 
+        // 請確保此 Script 已部署為 Web App，且設定為 "Anyone"
+        const GAS_APP_URL = 'https://script.google.com/macros/s/AKfycbzrOcWRzwgwVJrWnNWn0XwciJ-xzYMz2re08WVkLSxxQ2_94gfWjAgnm-OQXIS_rBORmw/exec'; 
 
         // === 設定檔 ===
         const CONFIG = {
@@ -365,7 +365,7 @@
 
             // === 2. 功能模組 ===
 
-            // --- 新增: Push EDM 訂閱功能 ---
+            // --- 修改後的: Push EDM 訂閱功能 ---
             function initPushFeature(uid, pushId) {
                 const section = document.getElementById('push-section');
                 const emailInput = document.getElementById('user-email');
@@ -377,39 +377,45 @@
                 // 顯示表單區塊
                 section.style.display = 'block';
 
-                // 步驟 1: 自動讀取用戶資料
-                // 注意：這需要 GAS 後端支援 CORS 回傳資料。如果遇到 CORS 錯誤，fetch 會失敗。
+                // 步驟 1: 自動讀取用戶資料 (使用 GET)
                 loadingOverlay.style.display = 'flex';
                 loadingText.innerText = '讀取用戶資料中...';
 
-                // 建構 POST 請求 (使用 POST 通常比 GET 更容易處理參數傳遞與緩存問題)
-                // 若後端不支援 CORS 讀取，這裡會進入 catch
-                fetch(GAS_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'get_user_info', // 告訴後端我們要查資料
-                        uid: uid
-                    })
-                    // 這裡不加 mode: 'no-cors'，因為我們需要讀取回應的 JSON
+                // 組合 GET 請求的 URL
+                const queryUrl = `${GAS_APP_URL}?action=get_user_info&uid=${encodeURIComponent(uid)}`;
+
+                fetch(queryUrl)
+                .then(res => {
+                    if (!res.ok) { throw new Error('Network response was not ok'); }
+                    return res.json();
                 })
-                .then(res => res.json())
                 .then(data => {
-                    if (data.status === 'success' || data.email) {
-                        emailInput.value = data.email || '';
-                        nameInput.value = data.name || '';
-                        if(!data.email) {
-                            emailInput.readOnly = false; // 若抓不到 Email 則允許手動輸入
+                    console.log("User Data Received:", data);
+                    
+                    if (data.result === 'success' && data.data) {
+                        const userInfo = data.data;
+                        // 填入 Email
+                        if (userInfo.email) {
+                            emailInput.value = userInfo.email;
+                            emailInput.readOnly = true; // 鎖定不讓修改 (可視需求移除)
+                        } else {
+                            emailInput.readOnly = false;
                             emailInput.placeholder = "無法取得 Email，請手動輸入";
                         }
+                        
+                        // 填入姓名 (存入 hidden 欄位)
+                        if (userInfo.name) {
+                            nameInput.value = userInfo.name;
+                        }
                     } else {
-                        console.warn('API returned error or no data:', data);
+                        // 查無資料的情況
+                        console.warn('查無此 UID 資料');
                         emailInput.readOnly = false;
                         emailInput.placeholder = "請輸入 Email";
                     }
                 })
                 .catch(err => {
                     console.error('Fetch user info error:', err);
-                    // 讀取失敗時，允許用戶手動輸入
                     emailInput.value = '';
                     emailInput.readOnly = false;
                     emailInput.placeholder = "請輸入 Email";
@@ -418,7 +424,7 @@
                     loadingOverlay.style.display = 'none';
                 });
 
-                // 步驟 2: 發送訂閱請求
+                // 步驟 2: 發送訂閱請求 (維持 POST + no-cors)
                 btn.onclick = () => {
                     const currentEmail = emailInput.value.trim();
                     const currentName = nameInput.value || '';
@@ -434,10 +440,13 @@
                     loadingText.innerText = '訂閱處理中...';
                     btn.disabled = true;
 
-                    // 發送資料
+                    // 發送資料 (寫入動作維持 POST)
                     fetch(GAS_APP_URL, {
                         method: 'POST',
-                        mode: 'no-cors', // 發送通常不需要讀取回傳值，使用 no-cors 避免跨域阻擋
+                        mode: 'no-cors', 
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
                         body: JSON.stringify({
                             action: 'send_edm',
                             pushId: pushId || '',
@@ -447,10 +456,8 @@
                         })
                     })
                     .then(() => {
-                        // 樂觀更新：假設成功
                         alert('EDM 發送請求已送出，請至您的信箱收取。');
                         btn.innerText = '已送出申請';
-                        // 保持按鈕 disabled
                     })
                     .catch(err => {
                         console.error(err);
