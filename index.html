@@ -126,6 +126,47 @@
         /* Disclaimer */
         #disclaimer-text { font-size: 12px; color: #666; margin-top: 15px; line-height: 1.4; }
 
+        /* === NEW: Push EDM 區塊樣式 === */
+        #push-section {
+            display: none; /* 預設隱藏，source=push 時顯示 */
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px dashed #ccc;
+            text-align: left;
+        }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { 
+            display: block; margin-bottom: 8px; font-size: 14px; font-weight: bold; color: #555; 
+        }
+        .form-group input {
+            width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px;
+            transition: border-color 0.3s;
+            background-color: #f9f9f9;
+        }
+        .form-group input:focus { outline: none; border-color: #007bff; background-color: #fff;}
+        .form-group input:read-only { 
+            background-color: #e9ecef; color: #666; cursor: default;
+        }
+        
+        #btn-send-edm {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        #btn-send-edm:disabled {
+            background: #d6d6d6; color: #888; cursor: not-allowed; box-shadow: none;
+        }
+
+        /* Loading 遮罩 */
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9); z-index: 9999;
+            display: none; justify-content: center; align-items: center; flex-direction: column;
+        }
+        .spinner {
+            border: 5px solid #f3f3f3; border-top: 5px solid #007bff; border-radius: 50%;
+            width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
         /* === 專案特定樣式 (Themes) === */
         
         /* 1. 纖達日記 (Xenda) */
@@ -145,6 +186,12 @@
 </head>
 <body>
 
+    <!-- Loading 遮罩 -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div id="loading-text">資料讀取中...</div>
+    </div>
+
     <!-- Logo -->
     <img id="logo" src="https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png" alt="Logo">
 
@@ -162,6 +209,20 @@
         <div class="button-group">
             <button id="actionBtn" style="display: none;">分享</button>
         </div>
+
+        <!-- NEW: Push EDM 區塊 -->
+        <div id="push-section">
+            <div class="form-group">
+                <label for="user-email">您的 Email</label>
+                <input type="email" id="user-email" placeholder="讀取中..." readonly>
+            </div>
+            <!-- 隱藏的姓名欄位，用於暫存 -->
+            <input type="hidden" id="user-name">
+            
+            <div class="button-group">
+                <button id="btn-send-edm">我想收到 EDM</button>
+            </div>
+        </div>
         
         <!-- Desktop View 提示 -->
         <div id="desktop-extra">
@@ -175,6 +236,10 @@
     </div>
 
     <script>
+        // === Google Apps Script URL ===
+        // 請確保此 Script 已部署為 Web App，且設定為 "Anyone" (或 "Anyone with Google Account" 視您的權限策略而定)
+        const GAS_APP_URL = 'https://script.google.com/macros/s/AKfycbxyf_TSLu5fA-zF9yew6wkdb1O5maBGlicBbczUrdjVIMnMOIPYuzT4tZtW0uj8eJmk_Q/exec'; 
+
         // === 設定檔 ===
         const CONFIG = {
             default: {
@@ -260,29 +325,146 @@
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             
+            // 讀取參數
             const campaign = params.get('campaign'); 
-            const uid = params.get('uid'); 
             const idParam = params.get('id');           // 用於「下載／分享」的 ID
             const viewIdParam = params.get('view_id');  // 用於「介面顯示」的 ID
             const mode = params.get('mode'); 
             
+            // Push 相關參數
+            const source = params.get('source');
+            const pushId = params.get('pushId');
+            
+            // UID 處理：優先讀取 utm_term (LINE轉址), 其次讀取 uid
+            const uidFromUrl = params.get('uid');
+            const uidFromLine = params.get('utm_term');
+            const finalUid = uidFromLine || uidFromUrl;
+
             const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
             const actionBtn = document.getElementById('actionBtn');
             const imageWrapper = document.getElementById('image-wrapper');
             const thumbContainer = document.getElementById('thumbnail-container');
 
-            // === 1. 初始化邏輯 ===
-            if (campaign === 'xenda' && uid) {
-                initXenda(uid);
-            } else if (campaign === 'nnhcp' && uid) {
-                initNNHCP(uid);
-            } else {
-                // 將 idParam (下載用) 與 viewIdParam (顯示用) 傳入預設模式
+            // === 1. 路由判斷 ===
+            
+            if (source === 'push' && finalUid) {
+                // 情境: Push EDM (顯示圖片 + 訂閱表單)
+                initDefault(idParam, viewIdParam, mode);
+                initPushFeature(finalUid, pushId);
+            } 
+            else if (campaign === 'xenda' && finalUid) {
+                initXenda(finalUid);
+            } 
+            else if (campaign === 'nnhcp' && finalUid) {
+                initNNHCP(finalUid);
+            } 
+            else {
+                // 情境: 僅下載/分享 (無訂閱表單)
                 initDefault(idParam, viewIdParam, mode);
             }
 
-            // === 2. 各模式初始化函式 ===
+            // === 2. 功能模組 ===
 
+            // --- 新增: Push EDM 訂閱功能 ---
+            function initPushFeature(uid, pushId) {
+                const section = document.getElementById('push-section');
+                const emailInput = document.getElementById('user-email');
+                const nameInput = document.getElementById('user-name');
+                const btn = document.getElementById('btn-send-edm');
+                const loadingOverlay = document.getElementById('loading-overlay');
+                const loadingText = document.getElementById('loading-text');
+
+                // 顯示表單區塊
+                section.style.display = 'block';
+
+                // 步驟 1: 自動讀取用戶資料
+                // 注意：這需要 GAS 後端支援 CORS 回傳資料。如果遇到 CORS 錯誤，fetch 會失敗。
+                loadingOverlay.style.display = 'flex';
+                loadingText.innerText = '讀取用戶資料中...';
+
+                // 建構 POST 請求 (使用 POST 通常比 GET 更容易處理參數傳遞與緩存問題)
+                // 若後端不支援 CORS 讀取，這裡會進入 catch
+                fetch(GAS_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'get_user_info', // 告訴後端我們要查資料
+                        uid: uid
+                    })
+                    // 這裡不加 mode: 'no-cors'，因為我們需要讀取回應的 JSON
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success' || data.email) {
+                        emailInput.value = data.email || '';
+                        nameInput.value = data.name || '';
+                        if(!data.email) {
+                            emailInput.readOnly = false; // 若抓不到 Email 則允許手動輸入
+                            emailInput.placeholder = "無法取得 Email，請手動輸入";
+                        }
+                    } else {
+                        console.warn('API returned error or no data:', data);
+                        emailInput.readOnly = false;
+                        emailInput.placeholder = "請輸入 Email";
+                    }
+                })
+                .catch(err => {
+                    console.error('Fetch user info error:', err);
+                    // 讀取失敗時，允許用戶手動輸入
+                    emailInput.value = '';
+                    emailInput.readOnly = false;
+                    emailInput.placeholder = "請輸入 Email";
+                })
+                .finally(() => {
+                    loadingOverlay.style.display = 'none';
+                });
+
+                // 步驟 2: 發送訂閱請求
+                btn.onclick = () => {
+                    const currentEmail = emailInput.value.trim();
+                    const currentName = nameInput.value || '';
+                    
+                    if (!currentEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(currentEmail)) {
+                        alert('請輸入正確的 Email 格式');
+                        return;
+                    }
+
+                    if (!confirm(`確認是否收到 EDM？\n將發送至：${currentEmail}`)) return;
+
+                    loadingOverlay.style.display = 'flex';
+                    loadingText.innerText = '訂閱處理中...';
+                    btn.disabled = true;
+
+                    // 發送資料
+                    fetch(GAS_APP_URL, {
+                        method: 'POST',
+                        mode: 'no-cors', // 發送通常不需要讀取回傳值，使用 no-cors 避免跨域阻擋
+                        body: JSON.stringify({
+                            action: 'send_edm',
+                            pushId: pushId || '',
+                            uid: uid,
+                            name: currentName,
+                            email: currentEmail
+                        })
+                    })
+                    .then(() => {
+                        // 樂觀更新：假設成功
+                        alert('EDM 發送請求已送出，請至您的信箱收取。');
+                        btn.innerText = '已送出申請';
+                        // 保持按鈕 disabled
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('發送失敗，請稍後再試。');
+                        btn.disabled = false;
+                    })
+                    .finally(() => {
+                        loadingOverlay.style.display = 'none';
+                    });
+                };
+            }
+
+            // --- 既有模組 ---
+            
             function initXenda(uid) {
                 const conf = CONFIG.xenda;
                 applyTheme('theme-xenda', conf);
@@ -335,25 +517,21 @@
                 };
             }
 
-            // === [核心修改] 預設模式 ===
-            // 參數：downloadIds (下載用ID字串), viewIds (顯示用ID字串, 可選), pageMode (分享/下載文字)
             function initDefault(downloadIds, viewIds, pageMode) {
                 const conf = CONFIG.default;
                 document.getElementById('logo').src = conf.logo;
                 document.getElementById('disclaimer-text').textContent = 
                     (pageMode === 'download') ? conf.disclaimerDownload : conf.disclaimerShare;
 
-                // 1. 準備「下載/分享」的目標 (Action Target)
-                // 若網址沒給 id，fallback 到 NNBanner.jpg
+                // 1. 準備「下載/分享」的目標
                 const dlIdList = downloadIds ? downloadIds.split(',') : ['NNBanner.jpg'];
                 const downloadUrls = dlIdList.map(id => `${conf.baseUrl}${id}`);
 
-                // 2. 準備「介面顯示」的目標 (Visual Target)
-                // 若網址有給 view_id，就用它來顯示；若沒有，就顯示跟下載一樣的圖
+                // 2. 準備「介面顯示」的目標
                 const vIdList = viewIds ? viewIds.split(',') : dlIdList;
                 const viewUrls = vIdList.map(id => `${conf.baseUrl}${id}`);
 
-                // 3. 渲染介面 (使用 viewUrls)
+                // 3. 渲染介面
                 const isViewMultiple = vIdList.length > 1;
                 
                 if (isViewMultiple) {
@@ -367,23 +545,19 @@
                     updateMainImage(viewUrls[0]);
                 }
 
-                // 4. 設定按鈕動作 (使用 downloadUrls)
+                // 4. 設定按鈕動作
                 const isDlMultiple = dlIdList.length > 1;
                 const btnText = (pageMode === 'download') ? '下載圖片' : '分享／下載圖片';
                 
-                // 按鈕文字根據「下載目標」是否多張來決定
                 actionBtn.textContent = isDlMultiple ? `打包${btnText}` : btnText;
                 actionBtn.style.display = 'block';
 
                 actionBtn.onclick = () => {
                     if (isMobile && navigator.share && !isDlMultiple) {
-                        // 手機原生分享：分享單張下載圖
                         shareFile(downloadUrls[0], dlIdList[0]);
                     } else if (isDlMultiple) {
-                        // 打包下載：下載多張圖的 Zip
                         downloadZip(downloadUrls, dlIdList); 
                     } else {
-                        // 一般下載：下載單張圖
                         const link = document.createElement('a');
                         link.href = downloadUrls[0];
                         link.download = dlIdList[0];
@@ -391,7 +565,6 @@
                     }
                 };
                 
-                // 桌面版 QR Code 始終顯示當前頁面網址
                 setupDesktopView(window.location.href);
             }
 
@@ -443,7 +616,10 @@
                     const deskDiv = document.getElementById('desktop-extra');
                     deskDiv.style.display = 'block';
                     document.getElementById('qr-code-text').innerHTML = '或使用手機掃描 QR Code 開啟';
-                    new QRCode(document.getElementById("qrcode"), { text: url, width: 150, height: 150 });
+                    // 清空後再產生，避免重複
+                    const qrContainer = document.getElementById("qrcode");
+                    qrContainer.innerHTML = "";
+                    new QRCode(qrContainer, { text: url, width: 150, height: 150 });
                 }
             }
         });
