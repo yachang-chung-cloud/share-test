@@ -94,21 +94,21 @@
             display: block; 
         }
         
-        /* Grid 模式 (調整多圖版面，避免跑版) */
+        /* Grid 模式 (保留兩圖排版優化) */
         .multiple-images-grid { 
             display: grid; 
-            grid-template-columns: repeat(2, 1fr); /* 強制均分兩欄 */
+            grid-template-columns: repeat(2, 1fr); 
             gap: 10px; 
             width: 100%;
-            align-items: center; /* 圖片高度不同時垂直置中 */
+            align-items: center; 
         }
         .multiple-images-grid img {
             width: 100%;
             height: auto;
-            max-height: 35vh; /* 避免單張圖片過長導致版面失控 */
-            object-fit: contain; /* 保持圖片比例不變形 */
+            max-height: 35vh; 
+            object-fit: contain; 
             border-radius: 8px;
-            background-color: transparent; /* GIF或透明去背時較好看 */
+            background-color: transparent;
         }
 
         /* 按鈕群組 */
@@ -266,8 +266,8 @@
         // === 設定檔 ===
         const CONFIG = {
             default: {
-                // 更換為新的 URL (包含斜線結尾)
-                baseUrl: 'https://storage.googleapis.com/am-docuguard.firebasestorage.app/assets/o3k0ZKgKSYgp0s5bxnhJjx2SqK42/',
+                // 復原為原本的 baseUrl
+                baseUrl: 'https://storage.googleapis.com/nn-hcp-public/',
                 logo: 'https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png',
                 bg: '', 
                 disclaimerShare: '僅限分享給專業醫療人員之參考。',
@@ -315,7 +315,7 @@
             try {
                 const blob = await fetchImageBlob(imageUrl);
                 
-                // 修正：支援 GIF, PNG, JPG，若都不符合才補上 .jpg
+                // 保留：支援 GIF, PNG, JPG，若都不符合才補上 .jpg
                 const lowerName = filename.toLowerCase();
                 if (!lowerName.match(/\.(jpg|jpeg|png|gif)$/i)) {
                     filename += '.jpg';
@@ -568,8 +568,8 @@
                 document.getElementById('disclaimer-text').textContent = 
                     (pageMode === 'download') ? conf.disclaimerDownload : conf.disclaimerShare;
 
-                // 1. 準備「下載/分享」的目標 (因為換了baseUrl，預設防呆改為預期有副檔名)
-                const dlIdList = downloadIds ? downloadIds.split(',') : ['default.png'];
+                // 1. 準備「下載/分享」的目標 (復原預設檔名)
+                const dlIdList = downloadIds ? downloadIds.split(',') : ['NNBanner.jpg'];
                 const downloadUrls = dlIdList.map(id => `${conf.baseUrl}${id}`);
 
                 // 2. 準備「介面顯示」的目標
