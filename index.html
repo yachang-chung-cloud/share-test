@@ -52,8 +52,8 @@
             display: none; 
         }
 
-        /* 圖片區域 */
-        #image-wrapper { 
+        /* 媒體區域 (圖片或影片) */
+        #media-wrapper { 
             margin-bottom: 15px; 
             display: flex;
             justify-content: center;
@@ -84,8 +84,8 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
 
-        /* 主圖顯示優化 (單圖) */
-        .main-image { 
+        /* 主媒體顯示優化 (單圖/單影片) */
+        .main-media { 
             width: auto;           
             max-width: 100%;       
             max-height: 45vh;      
@@ -94,21 +94,21 @@
             display: block; 
         }
         
-        /* Grid 模式 (保留兩圖排版優化) */
-        .multiple-images-grid { 
+        /* Grid 模式 (調整多圖/多影片版面) */
+        .multiple-media-grid { 
             display: grid; 
             grid-template-columns: repeat(2, 1fr); 
             gap: 10px; 
             width: 100%;
             align-items: center; 
         }
-        .multiple-images-grid img {
+        .multiple-media-grid img, .multiple-media-grid video {
             width: 100%;
             height: auto;
             max-height: 35vh; 
             object-fit: contain; 
             border-radius: 8px;
-            background-color: transparent;
+            background-color: #000; /* 影片背景建議偏深 */
         }
 
         /* 按鈕群組 */
@@ -187,15 +187,12 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* === 專案特定樣式 (Themes) === */
-        
-        /* 1. 纖達日記 (Xenda) */
         body.theme-xenda { color: #333; }
         body.theme-xenda .container { border-top: 4px solid #E480BD; }
         body.theme-xenda #page-title { color: #E480BD; }
         body.theme-xenda button { background: linear-gradient(135deg, #E480BD 0%, #F69DDF 100%); }
         body.theme-xenda .thumb-img.active { border-color: #E480BD; }
         
-        /* 2. NNHCP */
         body.theme-nnhcp { color: #011965; }
         body.theme-nnhcp .container { border-top: 4px solid #05AAFF; }
         body.theme-nnhcp #page-title { color: #0133DA; }
@@ -218,34 +215,28 @@
         <!-- 標題 -->
         <div id="page-title"></div>
 
-        <!-- 縮圖區 (僅 Xenda 顯示) -->
+        <!-- 縮圖區 -->
         <div id="thumbnail-container"></div>
 
-        <!-- 圖片顯示區 -->
-        <div id="image-wrapper"></div>
+        <!-- 媒體顯示區 (支援圖片/影片) -->
+        <div id="media-wrapper"></div>
 
         <!-- 按鈕區 -->
         <div class="button-group">
             <button id="actionBtn" style="display: none;">分享</button>
         </div>
 
-        <!-- NEW: Push EDM 區塊 -->
+        <!-- Push EDM 區塊 -->
         <div id="push-section">
-            
             <div class="form-group">
                 <label for="user-email">您的 Email</label>
                 <input type="email" id="user-email" placeholder="讀取中..." readonly>
             </div>
-            <!-- 隱藏的姓名欄位，用於暫存 -->
             <input type="hidden" id="user-name">
-            
             <div class="button-group">
                 <button id="btn-send-edm">我想收到 EDM</button>
             </div>
-
-            <!-- 來自 Sheet I欄的文案顯示區 -->
             <p id="push-campaign-text"></p>
-
         </div>
         
         <!-- Desktop View 提示 -->
@@ -266,7 +257,6 @@
         // === 設定檔 ===
         const CONFIG = {
             default: {
-                // 復原為原本的 baseUrl
                 baseUrl: 'https://storage.googleapis.com/nn-hcp-public/',
                 logo: 'https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png',
                 bg: '', 
@@ -299,25 +289,25 @@
         };
 
         // === 工具函式 ===
-        const fetchImageBlob = async (url) => {
+        const fetchMediaBlob = async (url) => {
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`Failed to fetch ${url}`);
                 return response.blob();
             } catch (e) {
                 console.error(e);
-                alert('圖片下載失敗，請檢查網路或連結。');
+                alert('檔案下載失敗，請檢查網路或連結。');
                 throw e;
             }
         };
 
-        const shareFile = async (imageUrl, filename) => {
+        const shareFile = async (mediaUrl, filename) => {
             try {
-                const blob = await fetchImageBlob(imageUrl);
+                const blob = await fetchMediaBlob(mediaUrl);
                 
-                // 保留：支援 GIF, PNG, JPG，若都不符合才補上 .jpg
+                // 修正：支援 MP4, GIF, PNG, JPG，若都不符合才補上 .jpg
                 const lowerName = filename.toLowerCase();
-                if (!lowerName.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                if (!lowerName.match(/\.(jpg|jpeg|png|gif|mp4)$/i)) {
                     filename += '.jpg';
                 }
                 
@@ -335,19 +325,19 @@
             } catch (error) {
                 if (error.name !== 'AbortError') {
                     console.error('Share failed:', error);
-                    alert('分享功能無法使用，請嘗試截圖或長按圖片儲存。');
+                    alert('分享功能無法使用，請嘗試截圖或長按儲存檔案。');
                 }
             }
         };
 
-        const downloadZip = async (imageUrls, filenames) => {
+        const downloadZip = async (mediaUrls, filenames) => {
             const zip = new JSZip();
-            const blobs = await Promise.all(imageUrls.map(url => fetchImageBlob(url)));
+            const blobs = await Promise.all(mediaUrls.map(url => fetchMediaBlob(url)));
             blobs.forEach((blob, i) => zip.file(filenames[i], blob));
             const content = await zip.generateAsync({type:"blob"});
             const link = document.createElement('a');
             link.href = URL.createObjectURL(content);
-            link.download = 'shared_images.zip';
+            link.download = 'shared_files.zip';
             link.click();
         };
 
@@ -356,8 +346,8 @@
             
             // 讀取參數
             const campaign = params.get('campaign'); 
-            const idParam = params.get('id');           // 用於「下載／分享」的 ID
-            const viewIdParam = params.get('view_id');  // 用於「介面顯示」的 ID
+            const idParam = params.get('id');           
+            const viewIdParam = params.get('view_id');  
             const mode = params.get('mode'); 
             
             // Push 相關參數
@@ -371,13 +361,12 @@
 
             const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
             const actionBtn = document.getElementById('actionBtn');
-            const imageWrapper = document.getElementById('image-wrapper');
+            const mediaWrapper = document.getElementById('media-wrapper');
             const thumbContainer = document.getElementById('thumbnail-container');
 
             // === 1. 路由判斷 ===
             
             if (source === 'push' && finalUid) {
-                // 情境: Push EDM (顯示圖片 + 訂閱表單 + 說明文字)
                 initDefault(idParam, viewIdParam, mode);
                 initPushFeature(finalUid, pushId);
             } 
@@ -388,7 +377,6 @@
                 initNNHCP(finalUid);
             } 
             else {
-                // 情境: 僅下載/分享 (無訂閱表單)
                 initDefault(idParam, viewIdParam, mode);
             }
 
@@ -403,18 +391,13 @@
                 const loadingOverlay = document.getElementById('loading-overlay');
                 const loadingText = document.getElementById('loading-text');
 
-                // 顯示表單區塊
                 section.style.display = 'block';
                 loadingOverlay.style.display = 'flex';
                 loadingText.innerText = '資料讀取中...';
 
-                // ==========================================
-                // 動作 A: 抓取用戶資料 (Email/Name)
-                // ==========================================
                 const userFetch = fetch(`${GAS_APP_URL}?action=get_user_info&uid=${encodeURIComponent(uid)}`)
                     .then(res => res.json())
                     .then(data => {
-                        console.log("User Data:", data);
                         if (data.result === 'success' && data.data) {
                             const userInfo = data.data;
                             if (userInfo.email) {
@@ -429,99 +412,56 @@
                             emailInput.readOnly = false;
                             emailInput.placeholder = "請輸入 Email";
                         }
-                    })
-                    .catch(err => {
-                        console.error('User fetch error:', err);
-                        emailInput.readOnly = false;
-                    });
+                    }).catch(err => { emailInput.readOnly = false; });
 
-                // ==========================================
-                // 動作 B: 抓取 Campaign 說明文案 (I欄)
-                // ==========================================
                 const campaignFetch = fetch(`${GAS_APP_URL}?action=get_campaign_info&pushId=${encodeURIComponent(pushId)}`)
                     .then(res => res.json())
                     .then(data => {
-                        console.log("Campaign Data:", data);
                         if (data.result === 'success' && data.data && data.data.content) {
-                            // 有內容才顯示
                             campaignTextField.innerText = data.data.content;
                             campaignTextField.style.display = 'block';
-                        } else {
-                            campaignTextField.style.display = 'none';
                         }
-                    })
-                    .catch(err => {
-                        console.error('Campaign fetch error:', err);
-                        campaignTextField.style.display = 'none';
-                    });
+                    }).catch(err => {});
 
-                // 等待兩者都完成後才關閉 Loading
                 Promise.all([userFetch, campaignFetch]).finally(() => {
                     loadingOverlay.style.display = 'none';
                 });
 
-                // ==========================================
-                // 動作 C: 發送訂閱請求
-                // ==========================================
                 btn.onclick = () => {
                     const currentEmail = emailInput.value.trim();
                     const currentName = nameInput.value || '';
-                    
                     if (!currentEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(currentEmail)) {
-                        alert('請輸入正確的 Email 格式');
-                        return;
+                        alert('請輸入正確的 Email 格式'); return;
                     }
-
                     if (!confirm(`確認是否收到 EDM？\n將發送至：${currentEmail}`)) return;
 
                     loadingOverlay.style.display = 'flex';
                     loadingText.innerText = '訂閱處理中...';
                     btn.disabled = true;
 
-                    // 發送資料
                     fetch(GAS_APP_URL, {
-                        method: 'POST',
-                        mode: 'no-cors', 
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: JSON.stringify({
-                            action: 'send_edm',
-                            pushId: pushId || '',
-                            uid: uid,
-                            name: currentName,
-                            email: currentEmail
-                        })
-                    })
-                    .then(() => {
+                        method: 'POST', mode: 'no-cors', 
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: JSON.stringify({ action: 'send_edm', pushId: pushId || '', uid: uid, name: currentName, email: currentEmail })
+                    }).then(() => {
                         alert('EDM 發送請求已送出，請至您的信箱收取。');
                         btn.innerText = '已送出申請';
-                    })
-                    .catch(err => {
-                        console.error(err);
+                    }).catch(err => {
                         alert('發送失敗，請稍後再試。');
                         btn.disabled = false;
-                    })
-                    .finally(() => {
-                        loadingOverlay.style.display = 'none';
-                    });
+                    }).finally(() => { loadingOverlay.style.display = 'none'; });
                 };
             }
 
-            // --- 既有模組 ---
-            
             function initXenda(uid) {
                 const conf = CONFIG.xenda;
                 applyTheme('theme-xenda', conf);
 
                 const images = [1, 2, 3, 4].map(num => ({
-                    id: `${num}`,
-                    url: `${conf.baseUrl}${uid}_${num}.jpg`,
-                    suffix: `_${num}.jpg`
+                    id: `${num}`, url: `${conf.baseUrl}${uid}_${num}.jpg`, suffix: `_${num}.jpg`
                 }));
 
                 thumbContainer.style.display = 'grid';
-                
                 let currentImgObj = images[3]; 
 
                 images.forEach(imgObj => {
@@ -533,14 +473,13 @@
                     thumb.onclick = () => {
                         document.querySelectorAll('.thumb-img').forEach(el => el.classList.remove('active'));
                         thumb.classList.add('active');
-                        updateMainImage(imgObj.url);
+                        updateMainMedia(imgObj.url);
                         currentImgObj = imgObj;
                     };
                     thumbContainer.appendChild(thumb);
                 });
 
-                updateMainImage(currentImgObj.url);
-
+                updateMainMedia(currentImgObj.url);
                 actionBtn.style.display = 'block';
                 actionBtn.onclick = () => {
                     const rename = conf.fileMapping[currentImgObj.suffix] || 'image.jpg';
@@ -551,15 +490,11 @@
             function initNNHCP(uid) {
                 const conf = CONFIG.nnhcp;
                 applyTheme('theme-nnhcp', conf);
-
-                const imgUrl = `${conf.baseUrl}${uid}.jpg`; 
-                
-                updateMainImage(imgUrl);
+                const mediaUrl = `${conf.baseUrl}${uid}.jpg`; 
+                updateMainMedia(mediaUrl);
 
                 actionBtn.style.display = 'block';
-                actionBtn.onclick = () => {
-                    shareFile(imgUrl, conf.renameTo);
-                };
+                actionBtn.onclick = () => { shareFile(mediaUrl, conf.renameTo); };
             }
 
             function initDefault(downloadIds, viewIds, pageMode) {
@@ -568,31 +503,38 @@
                 document.getElementById('disclaimer-text').textContent = 
                     (pageMode === 'download') ? conf.disclaimerDownload : conf.disclaimerShare;
 
-                // 1. 準備「下載/分享」的目標 (復原預設檔名)
                 const dlIdList = downloadIds ? downloadIds.split(',') : ['NNBanner.jpg'];
                 const downloadUrls = dlIdList.map(id => `${conf.baseUrl}${id}`);
 
-                // 2. 準備「介面顯示」的目標
                 const vIdList = viewIds ? viewIds.split(',') : dlIdList;
                 const viewUrls = vIdList.map(id => `${conf.baseUrl}${id}`);
 
-                // 3. 渲染介面
                 const isViewMultiple = vIdList.length > 1;
                 
                 if (isViewMultiple) {
-                    imageWrapper.className = 'multiple-images-grid';
+                    mediaWrapper.className = 'multiple-media-grid';
                     viewUrls.forEach(url => {
-                        const img = document.createElement('img');
-                        img.src = url;
-                        imageWrapper.appendChild(img);
+                        const isVideo = url.toLowerCase().endsWith('.mp4');
+                        let media;
+                        if (isVideo) {
+                            media = document.createElement('video');
+                            media.controls = true;
+                            media.playsInline = true;
+                            media.muted = true;
+                            media.autoplay = true;
+                            media.loop = true;
+                        } else {
+                            media = document.createElement('img');
+                        }
+                        media.src = url;
+                        mediaWrapper.appendChild(media);
                     });
                 } else {
-                    updateMainImage(viewUrls[0]);
+                    updateMainMedia(viewUrls[0]);
                 }
 
-                // 4. 設定按鈕動作
                 const isDlMultiple = dlIdList.length > 1;
-                const btnText = (pageMode === 'download') ? '下載圖片' : '分享／下載圖片';
+                const btnText = (pageMode === 'download') ? '下載檔案' : '分享／下載';
                 
                 actionBtn.textContent = isDlMultiple ? `打包${btnText}` : btnText;
                 actionBtn.style.display = 'block';
@@ -618,42 +560,59 @@
             function applyTheme(themeClass, conf) {
                 document.body.classList.add(themeClass);
                 document.getElementById('logo').src = conf.logo;
-                
-                if (conf.bgImage) {
-                    document.body.style.backgroundImage = `url('${conf.bgImage}')`;
-                }
+                if (conf.bgImage) document.body.style.backgroundImage = `url('${conf.bgImage}')`;
 
                 const titleEl = document.getElementById('page-title');
                 titleEl.textContent = conf.title;
                 titleEl.style.display = 'block';
 
                 actionBtn.textContent = conf.btnText;
-                
                 const disclaimerEl = document.getElementById('disclaimer-text');
-                if (conf.disclaimer) {
-                    disclaimerEl.textContent = conf.disclaimer;
-                } else {
-                    disclaimerEl.style.display = 'none';
-                }
+                if (conf.disclaimer) disclaimerEl.textContent = conf.disclaimer;
+                else disclaimerEl.style.display = 'none';
             }
 
-            function updateMainImage(url) {
-                imageWrapper.innerHTML = '';
-                imageWrapper.className = ''; 
-                const img = document.createElement('img');
-                img.src = url;
-                img.className = 'main-image';
+            // [核心修改] 支援影片與圖片切換生成
+            function updateMainMedia(url) {
+                mediaWrapper.innerHTML = '';
+                mediaWrapper.className = ''; 
                 
-                img.onerror = () => {
-                    img.style.display = 'none';
-                    if (!url.includes('_1.jpg') && !url.includes('_2.jpg')) {
-                         const errorMsg = document.createElement('div');
-                         errorMsg.textContent = '圖片載入失敗，請確認檔案是否存在。';
-                         errorMsg.style.padding = '20px';
-                         imageWrapper.appendChild(errorMsg);
-                    }
-                };
-                imageWrapper.appendChild(img);
+                const isVideo = url.toLowerCase().endsWith('.mp4');
+
+                if (isVideo) {
+                    const video = document.createElement('video');
+                    video.src = url;
+                    video.className = 'main-media';
+                    video.controls = true;      // 顯示播放控制列
+                    video.playsInline = true;   // 避免 iOS 強制全螢幕
+                    video.muted = true;         // 靜音才能自動播放
+                    video.autoplay = true;
+                    video.loop = true;
+                    
+                    video.onerror = () => {
+                        video.style.display = 'none';
+                        const errorMsg = document.createElement('div');
+                        errorMsg.textContent = '影片載入失敗，請確認檔案是否存在。';
+                        errorMsg.style.padding = '20px';
+                        mediaWrapper.appendChild(errorMsg);
+                    };
+                    mediaWrapper.appendChild(video);
+                } else {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.className = 'main-media';
+                    
+                    img.onerror = () => {
+                        img.style.display = 'none';
+                        if (!url.includes('_1.jpg') && !url.includes('_2.jpg')) {
+                             const errorMsg = document.createElement('div');
+                             errorMsg.textContent = '圖片載入失敗，請確認檔案是否存在。';
+                             errorMsg.style.padding = '20px';
+                             mediaWrapper.appendChild(errorMsg);
+                        }
+                    };
+                    mediaWrapper.appendChild(img);
+                }
             }
 
             function setupDesktopView(url) {
@@ -661,7 +620,6 @@
                     const deskDiv = document.getElementById('desktop-extra');
                     deskDiv.style.display = 'block';
                     document.getElementById('qr-code-text').innerHTML = '或使用手機掃描 QR Code 開啟';
-                    // 清空後再產生，避免重複
                     const qrContainer = document.getElementById("qrcode");
                     qrContainer.innerHTML = "";
                     new QRCode(qrContainer, { text: url, width: 150, height: 150 });
