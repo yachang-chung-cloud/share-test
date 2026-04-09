@@ -84,7 +84,7 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
 
-        /* 主圖顯示優化 */
+        /* 主圖顯示優化 (單圖) */
         .main-image { 
             width: auto;           
             max-width: 100%;       
@@ -94,17 +94,21 @@
             display: block; 
         }
         
-        /* Grid 模式 */
+        /* Grid 模式 (調整多圖版面，避免跑版) */
         .multiple-images-grid { 
             display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 15px; 
+            grid-template-columns: repeat(2, 1fr); /* 強制均分兩欄 */
+            gap: 10px; 
             width: 100%;
+            align-items: center; /* 圖片高度不同時垂直置中 */
         }
         .multiple-images-grid img {
             width: 100%;
             height: auto;
-            border-radius: 5px;
+            max-height: 35vh; /* 避免單張圖片過長導致版面失控 */
+            object-fit: contain; /* 保持圖片比例不變形 */
+            border-radius: 8px;
+            background-color: transparent; /* GIF或透明去背時較好看 */
         }
 
         /* 按鈕群組 */
@@ -128,25 +132,25 @@
 
         /* === NEW: Push EDM 區塊樣式 === */
         #push-section {
-            display: none; /* 預設隱藏，source=push 時顯示 */
+            display: none; 
             margin-top: 25px;
             padding-top: 20px;
             border-top: 1px dashed #ccc;
             text-align: left;
         }
 
-        /* 新增：Campaign 說明文字樣式 */
+        /* Campaign 說明文字樣式 */
         #push-campaign-text {
             font-size: 14px;
             color: #555;
             line-height: 1.6;
-            margin-bottom: 0;      /* 調整為 0，避免下方間距過大 */
-            margin-top: 15px;      /* 新增上方間距，與按鈕區隔 */
+            margin-bottom: 0;      
+            margin-top: 15px;      
             background-color: #f1f8ff;
             padding: 10px;
             border-radius: 6px;
             border-left: 4px solid #007bff;
-            display: none; /* 預設隱藏，有內容才顯示 */
+            display: none; 
         }
 
         .form-group { margin-bottom: 15px; }
@@ -239,7 +243,7 @@
                 <button id="btn-send-edm">我想收到 EDM</button>
             </div>
 
-            <!-- [NEW] 來自 Sheet I欄的文案顯示區 (移至按鈕下方) -->
+            <!-- 來自 Sheet I欄的文案顯示區 -->
             <p id="push-campaign-text"></p>
 
         </div>
@@ -257,13 +261,13 @@
 
     <script>
         // === Google Apps Script URL ===
-        // 請確保此 Script 已部署為 Web App，且設定為 "Anyone"
         const GAS_APP_URL = 'https://script.google.com/macros/s/AKfycbzrOcWRzwgwVJrWnNWn0XwciJ-xzYMz2re08WVkLSxxQ2_94gfWjAgnm-OQXIS_rBORmw/exec'; 
 
         // === 設定檔 ===
         const CONFIG = {
             default: {
-                baseUrl: 'https://storage.googleapis.com/nn-hcp-public/',
+                // 更換為新的 URL (包含斜線結尾)
+                baseUrl: 'https://storage.googleapis.com/am-docuguard.firebasestorage.app/assets/E1VMc49iZAZCJxubwj2uK7acfz02/',
                 logo: 'https://storage.googleapis.com/nn-hcp-public/nn_logo_rgb_blue_large.png',
                 bg: '', 
                 disclaimerShare: '僅限分享給專業醫療人員之參考。',
@@ -310,7 +314,12 @@
         const shareFile = async (imageUrl, filename) => {
             try {
                 const blob = await fetchImageBlob(imageUrl);
-                if (!filename.endsWith('.jpg') && !filename.endsWith('.png')) filename += '.jpg';
+                
+                // 修正：支援 GIF, PNG, JPG，若都不符合才補上 .jpg
+                const lowerName = filename.toLowerCase();
+                if (!lowerName.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                    filename += '.jpg';
+                }
                 
                 const file = new File([blob], filename, { type: blob.type });
                 const shareData = { files: [file] };
@@ -355,7 +364,7 @@
             const source = params.get('source');
             const pushId = params.get('pushId');
             
-            // UID 處理：優先讀取 utm_term (LINE轉址), 其次讀取 uid
+            // UID 處理
             const uidFromUrl = params.get('uid');
             const uidFromLine = params.get('utm_term');
             const finalUid = uidFromLine || uidFromUrl;
@@ -385,7 +394,6 @@
 
             // === 2. 功能模組 ===
 
-            // --- 修改後的: Push EDM 訂閱功能 ---
             function initPushFeature(uid, pushId) {
                 const section = document.getElementById('push-section');
                 const campaignTextField = document.getElementById('push-campaign-text');
@@ -428,7 +436,7 @@
                     });
 
                 // ==========================================
-                // 動作 B: [NEW] 抓取 Campaign 說明文案 (I欄)
+                // 動作 B: 抓取 Campaign 說明文案 (I欄)
                 // ==========================================
                 const campaignFetch = fetch(`${GAS_APP_URL}?action=get_campaign_info&pushId=${encodeURIComponent(pushId)}`)
                     .then(res => res.json())
@@ -560,8 +568,8 @@
                 document.getElementById('disclaimer-text').textContent = 
                     (pageMode === 'download') ? conf.disclaimerDownload : conf.disclaimerShare;
 
-                // 1. 準備「下載/分享」的目標
-                const dlIdList = downloadIds ? downloadIds.split(',') : ['NNBanner.jpg'];
+                // 1. 準備「下載/分享」的目標 (因為換了baseUrl，預設防呆改為預期有副檔名)
+                const dlIdList = downloadIds ? downloadIds.split(',') : ['default.png'];
                 const downloadUrls = dlIdList.map(id => `${conf.baseUrl}${id}`);
 
                 // 2. 準備「介面顯示」的目標
