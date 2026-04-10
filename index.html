@@ -390,30 +390,50 @@
                 const btn = document.getElementById('btn-send-edm');
                 const loadingOverlay = document.getElementById('loading-overlay');
                 const loadingText = document.getElementById('loading-text');
-
+            
                 section.style.display = 'block';
                 loadingOverlay.style.display = 'flex';
                 loadingText.innerText = '資料讀取中...';
-
-                const userFetch = fetch(`${GAS_APP_URL}?action=get_user_info&uid=${encodeURIComponent(uid)}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.result === 'success' && data.data) {
-                            const userInfo = data.data;
-                            if (userInfo.email) {
-                                emailInput.value = userInfo.email;
-                                emailInput.readOnly = true; 
-                            } else {
-                                emailInput.readOnly = false;
-                                emailInput.placeholder = "無法取得 Email，請手動輸入";
-                            }
-                            if (userInfo.name) nameInput.value = userInfo.name;
-                        } else {
-                            emailInput.readOnly = false;
-                            emailInput.placeholder = "請輸入 Email";
-                        }
-                    }).catch(err => { emailInput.readOnly = false; });
-
+            
+                // === [更新] 1. 新的撈取 HCP 資訊 API ===
+                const GET_HCP_API_URL = 'https://project-nn-hcp-dnz3lqp74q-de.a.run.app/hcp/get-hcp-by-line-user-id';
+            
+                const userFetch = fetch(GET_HCP_API_URL, {
+                    method: 'POST', // 根據 JSON Request，改為 POST 請求
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        site: "nnhcp",
+                        LINEUserId: uid
+                    })
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error('API Request failed');
+                    return res.json();
+                })
+                .then(data => {
+                    // === [更新] 2. 解析新的 Response 結構 ===
+                    // 新規格直接回傳 { LINEUserId, name, email }，不需判斷 result === 'success'
+                    if (data && data.email) {
+                        emailInput.value = data.email;
+                        emailInput.readOnly = true; 
+                    } else {
+                        emailInput.readOnly = false;
+                        emailInput.placeholder = "無法取得 Email，請手動輸入";
+                    }
+                    
+                    if (data && data.name) {
+                        nameInput.value = data.name;
+                    }
+                })
+                .catch(err => { 
+                    console.error('Fetch HCP info error:', err);
+                    emailInput.readOnly = false; 
+                    emailInput.placeholder = "請輸入 Email"; 
+                });
+            
+                // 取得 Campaign 說明的 API (維持使用原本的 GAS API)
                 const campaignFetch = fetch(`${GAS_APP_URL}?action=get_campaign_info&pushId=${encodeURIComponent(pushId)}`)
                     .then(res => res.json())
                     .then(data => {
@@ -422,11 +442,12 @@
                             campaignTextField.style.display = 'block';
                         }
                     }).catch(err => {});
-
+            
                 Promise.all([userFetch, campaignFetch]).finally(() => {
                     loadingOverlay.style.display = 'none';
                 });
-
+            
+                // 點擊發送 EDM 的按鈕邏輯 (維持原本的 GAS API 邏輯)
                 btn.onclick = () => {
                     const currentEmail = emailInput.value.trim();
                     const currentName = nameInput.value || '';
@@ -434,11 +455,11 @@
                         alert('請輸入正確的 Email 格式'); return;
                     }
                     if (!confirm(`確認是否收到 EDM？\n將發送至：${currentEmail}`)) return;
-
+            
                     loadingOverlay.style.display = 'flex';
                     loadingText.innerText = '訂閱處理中...';
                     btn.disabled = true;
-
+            
                     fetch(GAS_APP_URL, {
                         method: 'POST', mode: 'no-cors', 
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
